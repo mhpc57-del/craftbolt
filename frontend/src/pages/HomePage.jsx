@@ -177,7 +177,6 @@ const HomePage = () => {
                   <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                     <adv.icon weight="duotone" className="w-5 h-5 text-orange-500" />
                   </div>
-                  <span className="text-orange-500 font-bold text-sm">{String(index + 1).padStart(2, '0')}</span>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{adv.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{adv.desc}</p>
