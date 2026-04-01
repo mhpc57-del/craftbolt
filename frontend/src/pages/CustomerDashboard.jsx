@@ -106,7 +106,7 @@ const CustomerDashboard = () => {
         <header className="bg-white border-b border-gray-100 px-6 py-4 sticky top-0 z-40">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Dashboard zákazníka</h1>
+              <h1 className="text-xl font-bold text-gray-900">Profil zákazníka</h1>
               <p className="text-sm text-gray-500">Vítejte zpět, {user?.company_name || user?.email}</p>
             </div>
             <div className="flex items-center gap-4">
