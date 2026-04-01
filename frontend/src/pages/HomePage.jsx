@@ -192,7 +192,7 @@ const HomePage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-start">
             <div>
               <span className="text-orange-500 font-bold text-sm tracking-widest uppercase">Proces</span>
-              <h2 className="text-4xl font-bold text-gray-900 mt-4 mb-6">Jak to funguje</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mt-4 mb-6">Jak to celé funguje</h2>
               <p className="text-gray-600 text-lg mb-8">
                 Od zadání poptávky po dokončení zakázky. Pět jednoduchých kroků.
               </p>

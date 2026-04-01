@@ -3,19 +3,19 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 
 const slides = [
   {
-    image: "https://images.unsplash.com/photo-1556155092-490a1ba16284?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1544717302-de2939b7ef71?w=800&h=600&fit=crop",
     label: "01 — Zadání zakázky",
   },
   {
-    image: "https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=800&h=600&fit=crop",
+    image: "https://images.pexels.com/photos/6720550/pexels-photo-6720550.jpeg?auto=compress&cs=tinysrgb&w=800",
     label: "02 — Přijetí zakázky",
   },
   {
-    image: "https://images.pexels.com/photos/6790070/pexels-photo-6790070.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+    image: "https://images.pexels.com/photos/5691589/pexels-photo-5691589.jpeg?auto=compress&cs=tinysrgb&w=800",
     label: "03 — Realizace",
   },
   {
-    image: "https://images.pexels.com/photos/8961300/pexels-photo-8961300.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1758523417356-3171f06a32b6?w=800&h=600&fit=crop",
     label: "04 — Předání díla",
   },
   {
