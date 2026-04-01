@@ -4,33 +4,21 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 const slides = [
   {
     image: "https://images.pexels.com/photos/5691589/pexels-photo-5691589.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Elektromontáže",
-    title: "Profesionální elektrikáři"
   },
   {
     image: "https://images.pexels.com/photos/6419128/pexels-photo-6419128.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Instalatérství",
-    title: "Spolehliví instalatéři"
   },
   {
-    image: "https://images.pexels.com/photos/11293624/pexels-photo-11293624.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Stavební práce",
-    title: "Zkušení stavbaři"
+    image: "https://images.pexels.com/photos/19688828/pexels-photo-19688828.jpeg?auto=compress&cs=tinysrgb&w=1200",
   },
   {
-    image: "https://images.pexels.com/photos/313776/pexels-photo-313776.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Truhlářství",
-    title: "Šikovní truhláři"
+    image: "https://images.pexels.com/photos/374861/pexels-photo-374861.jpeg?auto=compress&cs=tinysrgb&w=1200",
   },
   {
     image: "https://images.pexels.com/photos/6196239/pexels-photo-6196239.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Úklidové služby",
-    title: "Profesionální úklid"
   },
   {
     image: "https://images.pexels.com/photos/5691536/pexels-photo-5691536.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    category: "Topenáři",
-    title: "Odborníci na topení"
   }
 ];
 
@@ -81,16 +69,9 @@ const HeroSlider = () => {
           >
             <img
               src={slide.image}
-              alt={slide.title}
+              alt={`Slide ${index + 1}`}
               className="w-full h-full object-cover"
             />
-            {/* Overlay with category info */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6">
-              <span className="inline-block px-3 py-1 bg-orange-500 text-white text-sm font-medium rounded-full mb-2">
-                {slide.category}
-              </span>
-              <h3 className="text-white text-xl font-semibold">{slide.title}</h3>
-            </div>
           </div>
         ))}
       </div>
@@ -112,7 +93,7 @@ const HeroSlider = () => {
       </button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
         {slides.map((_, index) => (
           <button
             key={index}
