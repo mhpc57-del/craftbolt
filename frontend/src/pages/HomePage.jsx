@@ -18,6 +18,7 @@ import {
   Check,
   X
 } from '@phosphor-icons/react';
+import HeroSlider from '../components/HeroSlider';
 
 const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -148,12 +149,8 @@ const HomePage = () => {
                 </div>
               </div>
             </div>
-            <div className="animate-fade-in-up stagger-2">
-              <img 
-                src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=500&fit=crop" 
-                alt="Řemeslníci" 
-                className="rounded-2xl shadow-2xl w-full"
-              />
+            <div className="animate-fade-in-up stagger-2 h-[400px] lg:h-[500px]">
+              <HeroSlider />
             </div>
           </div>
         </div>
