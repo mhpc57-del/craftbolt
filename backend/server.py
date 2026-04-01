@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -8,13 +8,14 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import httpx
 import base64
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -920,6 +921,263 @@ async def get_all_demands(current_user: dict = Depends(get_current_user)):
     demands = await db.demands.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return [DemandResponse(**d) for d in demands]
 
+# ============ SUBSCRIPTION PLANS ============
+
+SUBSCRIPTION_PLANS = {
+    "zakaznik": {
+        "name": "Zákazník",
+        "price": 190.0,  # CZK
+        "description": "Neomezený počet poptávek, výběr z ověřených dodavatelů",
+        "role": "customer",
+        "trial_days": 14
+    },
+    "nepodnikatel": {
+        "name": "Nepodnikatel",
+        "price": 290.0,  # CZK
+        "description": "Přístup ke všem zakázkám, badge Prověřený subjekt",
+        "role": "supplier",
+        "account_type": "nepodnikatel",
+        "trial_days": 14
+    },
+    "osvc": {
+        "name": "OSVČ / Firmy",
+        "price": 490.0,  # CZK
+        "description": "Přístup ke všem zakázkám, prioritní zobrazení, fakturace na IČO",
+        "role": "supplier",
+        "account_type": "osvc",
+        "trial_days": 14
+    }
+}
+
+# ============ STRIPE MODELS ============
+
+class CreateCheckoutRequest(BaseModel):
+    plan_id: str
+    origin_url: str
+
+class CheckoutStatusRequest(BaseModel):
+    session_id: str
+
+# ============ STRIPE ROUTES ============
+
+@api_router.get("/subscription/plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    return {"plans": SUBSCRIPTION_PLANS}
+
+@api_router.post("/subscription/checkout")
+async def create_subscription_checkout(
+    request: Request,
+    data: CreateCheckoutRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create Stripe checkout session for subscription"""
+    if data.plan_id not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail="Neplatný tarif")
+    
+    plan = SUBSCRIPTION_PLANS[data.plan_id]
+    
+    # Initialize Stripe
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe není nakonfigurován")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    # Build URLs from frontend origin
+    success_url = f"{data.origin_url}/platba/uspech?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/platba/zruseno"
+    
+    # Create checkout session
+    checkout_request = CheckoutSessionRequest(
+        amount=plan["price"],
+        currency="czk",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": current_user["id"],
+            "user_email": current_user["email"],
+            "plan_id": data.plan_id,
+            "plan_name": plan["name"]
+        }
+    )
+    
+    try:
+        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "user_id": current_user["id"],
+            "user_email": current_user["email"],
+            "plan_id": data.plan_id,
+            "plan_name": plan["name"],
+            "amount": plan["price"],
+            "currency": "CZK",
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(transaction)
+        
+        logger.info(f"Checkout session created for user {current_user['email']}, plan: {data.plan_id}")
+        
+        return {
+            "url": session.url,
+            "session_id": session.session_id
+        }
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chyba při vytváření platby: {str(e)}")
+
+@api_router.get("/subscription/status/{session_id}")
+async def get_subscription_status(
+    request: Request,
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Check payment status and activate subscription if paid"""
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe není nakonfigurován")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    try:
+        status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Find transaction
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        if not transaction:
+            raise HTTPException(status_code=404, detail="Transakce nenalezena")
+        
+        # Update transaction status
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {
+                "payment_status": status.payment_status,
+                "status": status.status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # If payment successful and not already processed, activate subscription
+        if status.payment_status == "paid" and transaction.get("payment_status") != "paid":
+            plan = SUBSCRIPTION_PLANS.get(transaction["plan_id"])
+            if plan:
+                # Calculate subscription end date (1 month from now)
+                subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+                
+                await db.users.update_one(
+                    {"id": transaction["user_id"]},
+                    {"$set": {
+                        "subscription_active": True,
+                        "subscription_plan": transaction["plan_id"],
+                        "subscription_ends_at": subscription_end.isoformat(),
+                        "trial_ends_at": None  # End trial
+                    }}
+                )
+                
+                logger.info(f"Subscription activated for user {transaction['user_email']}, plan: {transaction['plan_id']}")
+        
+        return {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount": status.amount_total / 100,  # Convert from hellers to CZK
+            "currency": status.currency.upper(),
+            "plan_id": transaction.get("plan_id"),
+            "plan_name": transaction.get("plan_name")
+        }
+    except Exception as e:
+        logger.error(f"Stripe status check error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chyba při ověřování platby: {str(e)}")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        return {"status": "error", "message": "Stripe not configured"}
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature", "")
+        
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        logger.info(f"Stripe webhook received: {webhook_response.event_type}")
+        
+        # Handle checkout.session.completed event
+        if webhook_response.event_type == "checkout.session.completed":
+            session_id = webhook_response.session_id
+            
+            # Update transaction
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            if transaction and transaction.get("payment_status") != "paid":
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # Activate subscription
+                plan = SUBSCRIPTION_PLANS.get(transaction["plan_id"])
+                if plan:
+                    subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+                    await db.users.update_one(
+                        {"id": transaction["user_id"]},
+                        {"$set": {
+                            "subscription_active": True,
+                            "subscription_plan": transaction["plan_id"],
+                            "subscription_ends_at": subscription_end.isoformat(),
+                            "trial_ends_at": None
+                        }}
+                    )
+                    logger.info(f"Subscription activated via webhook for user {transaction['user_email']}")
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/subscription/my")
+async def get_my_subscription(current_user: dict = Depends(get_current_user)):
+    """Get current user's subscription status"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Uživatel nenalezen")
+    
+    # Check if trial is still active
+    trial_active = False
+    if user.get("trial_ends_at"):
+        trial_end = datetime.fromisoformat(user["trial_ends_at"].replace('Z', '+00:00'))
+        trial_active = trial_end > datetime.now(timezone.utc)
+    
+    # Check if subscription is active
+    subscription_active = user.get("subscription_active", False)
+    if user.get("subscription_ends_at"):
+        sub_end = datetime.fromisoformat(user["subscription_ends_at"].replace('Z', '+00:00'))
+        if sub_end < datetime.now(timezone.utc):
+            subscription_active = False
+    
+    return {
+        "subscription_active": subscription_active,
+        "subscription_plan": user.get("subscription_plan"),
+        "subscription_ends_at": user.get("subscription_ends_at"),
+        "trial_active": trial_active,
+        "trial_ends_at": user.get("trial_ends_at")
+    }
+
 # ============ SUPPLIERS PUBLIC ROUTES ============
 
 @api_router.get("/suppliers", response_model=List[UserResponse])
@@ -967,6 +1225,8 @@ async def startup():
     await db.demands.create_index("category")
     await db.messages.create_index("demand_id")
     await db.reviews.create_index("reviewed_user_id")
+    await db.payment_transactions.create_index("session_id", unique=True)
+    await db.payment_transactions.create_index("user_id")
     
     # Create admin user if not exists
     admin = await db.users.find_one({"email": "admin@craftbolt.cz"})
