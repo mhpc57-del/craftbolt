@@ -17,6 +17,7 @@ import httpx
 import base64
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import stripe
+from notifications import notification_service
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -363,6 +364,17 @@ async def register(user_data: UserCreate):
     
     await db.users.insert_one(user)
     
+    # Send registration notification
+    try:
+        await notification_service.notify_registration(
+            user_email=user_data.email,
+            user_name=user_data.company_name or user_data.email.split('@')[0],
+            user_role=user_data.role,
+            user_phone=user_data.phone
+        )
+    except Exception as e:
+        logger.error(f"Failed to send registration notification: {str(e)}")
+    
     token = create_token(user_id, user_data.email, user_data.role)
     
     return TokenResponse(
@@ -644,6 +656,24 @@ async def create_demand(
     
     await db.demands.insert_one(demand)
     
+    # Notify suppliers in this category
+    try:
+        suppliers = await db.users.find({
+            "role": "supplier",
+            "categories": demand_data.category,
+            "subscription_active": True
+        }, {"_id": 0, "email": 1, "phone": 1}).to_list(100)
+        
+        if suppliers:
+            await notification_service.notify_new_demand(
+                suppliers=suppliers,
+                demand_title=demand_data.title,
+                demand_category=demand_data.category,
+                demand_address=demand_data.address or ""
+            )
+    except Exception as e:
+        logger.error(f"Failed to send new demand notifications: {str(e)}")
+    
     return DemandResponse(**demand)
 
 @api_router.get("/demands", response_model=List[DemandResponse])
@@ -741,6 +771,19 @@ async def accept_demand(demand_id: str, current_user: dict = Depends(get_current
         }}
     )
     
+    # Notify customer about accepted demand
+    try:
+        customer = await db.users.find_one({"id": demand["customer_id"]}, {"_id": 0, "email": 1, "phone": 1})
+        if customer:
+            await notification_service.notify_new_offer(
+                customer_email=customer["email"],
+                customer_phone=customer.get("phone"),
+                supplier_name=current_user.get("company_name") or current_user["email"],
+                demand_title=demand["title"]
+            )
+    except Exception as e:
+        logger.error(f"Failed to send accept notification: {str(e)}")
+    
     return {"message": "Demand accepted"}
 
 @api_router.post("/demands/{demand_id}/complete")
@@ -759,6 +802,30 @@ async def complete_demand(demand_id: str, current_user: dict = Depends(get_curre
         {"$set": {"status": "completed", "completed_at": now.isoformat()}}
     )
     
+    # Notify both parties about completion
+    try:
+        customer = await db.users.find_one({"id": demand["customer_id"]}, {"_id": 0, "email": 1, "phone": 1})
+        supplier = await db.users.find_one({"id": demand.get("assigned_supplier_id")}, {"_id": 0, "email": 1, "phone": 1}) if demand.get("assigned_supplier_id") else None
+        
+        if customer:
+            await notification_service.notify_status_change(
+                user_email=customer["email"],
+                user_phone=customer.get("phone"),
+                demand_title=demand["title"],
+                old_status="in_progress",
+                new_status="completed"
+            )
+        if supplier:
+            await notification_service.notify_status_change(
+                user_email=supplier["email"],
+                user_phone=supplier.get("phone"),
+                demand_title=demand["title"],
+                old_status="in_progress",
+                new_status="completed"
+            )
+    except Exception as e:
+        logger.error(f"Failed to send completion notification: {str(e)}")
+    
     return {"message": "Demand completed"}
 
 @api_router.post("/demands/{demand_id}/cancel")
@@ -774,6 +841,21 @@ async def cancel_demand(demand_id: str, current_user: dict = Depends(get_current
         {"id": demand_id},
         {"$set": {"status": "cancelled"}}
     )
+    
+    # Notify supplier about cancellation
+    try:
+        if demand.get("assigned_supplier_id"):
+            supplier = await db.users.find_one({"id": demand["assigned_supplier_id"]}, {"_id": 0, "email": 1, "phone": 1})
+            if supplier:
+                await notification_service.notify_status_change(
+                    user_email=supplier["email"],
+                    user_phone=supplier.get("phone"),
+                    demand_title=demand["title"],
+                    old_status=demand["status"],
+                    new_status="cancelled"
+                )
+    except Exception as e:
+        logger.error(f"Failed to send cancellation notification: {str(e)}")
     
     return {"message": "Demand cancelled"}
 
@@ -808,6 +890,29 @@ async def send_message(
     }
     
     await db.messages.insert_one(message)
+    
+    # Send notification to recipient
+    try:
+        # Determine recipient
+        if current_user["id"] == demand["customer_id"]:
+            # Message from customer to supplier
+            recipient_id = demand.get("assigned_supplier_id")
+        else:
+            # Message from supplier to customer
+            recipient_id = demand["customer_id"]
+        
+        if recipient_id:
+            recipient = await db.users.find_one({"id": recipient_id}, {"_id": 0, "email": 1, "phone": 1})
+            if recipient:
+                await notification_service.notify_new_message(
+                    recipient_email=recipient["email"],
+                    recipient_phone=recipient.get("phone"),
+                    sender_name=current_user.get("company_name") or current_user["email"],
+                    demand_title=demand["title"],
+                    message=message_data.content
+                )
+    except Exception as e:
+        logger.error(f"Failed to send message notification: {str(e)}")
     
     return MessageResponse(**message)
 
@@ -1076,6 +1181,16 @@ async def get_subscription_status(
                     "trial_ends_at": None
                 }}
             )
+            
+            # Send payment success notification
+            try:
+                await notification_service.notify_payment_success(
+                    user_email=transaction["user_email"],
+                    plan_name=transaction["plan_name"],
+                    amount=transaction["amount"]
+                )
+            except Exception as e:
+                logger.error(f"Failed to send payment notification: {str(e)}")
             
             logger.info(f"Subscription activated for {transaction['user_email']}, plan: {transaction['plan_id']}")
         
