@@ -926,25 +926,16 @@ async def get_all_demands(current_user: dict = Depends(get_current_user)):
 SUBSCRIPTION_PLANS = {
     "zakaznik": {
         "name": "Zákazník",
-        "price": 190.0,  # CZK
+        "price": 99.0,  # CZK
         "description": "Neomezený počet poptávek, výběr z ověřených dodavatelů",
         "role": "customer",
         "trial_days": 14
     },
-    "nepodnikatel": {
-        "name": "Nepodnikatel",
-        "price": 290.0,  # CZK
-        "description": "Přístup ke všem zakázkám, badge Prověřený subjekt",
+    "dodavatel": {
+        "name": "Dodavatel",
+        "price": 390.0,  # CZK
+        "description": "Přístup ke všem zakázkám, statistiky, prioritní zobrazení",
         "role": "supplier",
-        "account_type": "nepodnikatel",
-        "trial_days": 14
-    },
-    "osvc": {
-        "name": "OSVČ / Firmy",
-        "price": 490.0,  # CZK
-        "description": "Přístup ke všem zakázkám, prioritní zobrazení, fakturace na IČO",
-        "role": "supplier",
-        "account_type": "osvc",
         "trial_days": 14
     }
 }

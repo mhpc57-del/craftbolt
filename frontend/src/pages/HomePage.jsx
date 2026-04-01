@@ -274,24 +274,23 @@ const HomePage = () => {
           <div className="text-center mb-16">
             <span className="text-orange-500 font-bold text-sm tracking-widest uppercase">Ceník</span>
             <h2 className="text-4xl font-bold text-gray-900 mt-4">
-              Transparentní ceny.<br />
-              <span className="text-gray-900">Žádné skryté poplatky.</span>
+              Jednoduchý a férový ceník.
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {/* Customer */}
             <div className="bg-white rounded-2xl p-8 border border-gray-200 card-hover">
               <div className="mb-6">
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Zákazník</span>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-5xl font-bold text-gray-900">190</span>
+                  <span className="text-5xl font-bold text-gray-900">99</span>
                   <span className="text-gray-500">Kč/měsíc</span>
                 </div>
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
               <ul className="space-y-3 mb-8">
-                {["Neomezený počet poptávek", "Výběr z ověřených dodavatelů", "Hodnocení s fotografiemi", "E-mail a SMS notifikace"].map((item, i) => (
+                {["Neomezený počet poptávek", "Výběr z ověřených dodavatelů", "Hodnocení a recenze", "Chat s dodavateli", "E-mail a SMS notifikace"].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-gray-600">
                     <Check weight="bold" className="w-5 h-5 text-orange-500" />
                     {item}
@@ -300,28 +299,28 @@ const HomePage = () => {
               </ul>
               <Link 
                 to="/registrace?role=customer" 
-                className="block w-full text-center py-3 px-6 border border-gray-200 rounded-full font-medium text-gray-700 hover:border-orange-500 hover:text-orange-500 transition-colors"
+                className="block w-full text-center py-3 px-6 bg-gray-900 hover:bg-gray-800 rounded-full font-medium text-white transition-colors"
                 data-testid="pricing-customer-btn"
               >
-                Registrovat se
+                Začít jako zákazník
               </Link>
             </div>
 
-            {/* Nepodnikatel */}
+            {/* Dodavatel */}
             <div className="bg-white rounded-2xl p-8 border-2 border-orange-500 card-hover relative">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase">
-                Doporučeno
+                Pro řemeslníky
               </span>
               <div className="mb-6">
-                <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Nepodnikatel</span>
+                <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Dodavatel</span>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-5xl font-bold text-gray-900">290</span>
+                  <span className="text-5xl font-bold text-gray-900">390</span>
                   <span className="text-gray-500">Kč/měsíc</span>
                 </div>
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
               <ul className="space-y-3 mb-8">
-                {["Přístup ke všem zakázkám", "Badge \"Prověřený subjekt\"", "Statistiky a přehledy", "Prioritní zobrazení v katalogu", "E-mail a SMS notifikace"].map((item, i) => (
+                {["Přístup ke všem zakázkám", "Badge \"Ověřený dodavatel\"", "Statistiky a přehledy", "Prioritní zobrazení v katalogu", "Chat se zákazníky", "E-mail a SMS notifikace"].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-gray-600">
                     <Check weight="bold" className="w-5 h-5 text-orange-500" />
                     {item}
@@ -329,38 +328,11 @@ const HomePage = () => {
                 ))}
               </ul>
               <Link 
-                to="/registrace?role=supplier&type=nepodnikatel" 
+                to="/registrace?role=supplier" 
                 className="block w-full text-center py-3 px-6 bg-orange-500 hover:bg-orange-600 rounded-full font-medium text-white transition-colors"
-                data-testid="pricing-nepodnikatel-btn"
+                data-testid="pricing-dodavatel-btn"
               >
-                Registrovat se jako dodavatel
-              </Link>
-            </div>
-
-            {/* OSVČ / Firmy */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 card-hover">
-              <div className="mb-6">
-                <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">OSVČ / Firmy</span>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-5xl font-bold text-gray-900">490</span>
-                  <span className="text-gray-500">Kč/měsíc</span>
-                </div>
-                <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {["Přístup ke všem zakázkám", "Badge \"Prověřený subjekt\"", "Statistiky a přehledy", "Prioritní zobrazení v katalogu", "Fakturace na IČO", "E-mail a SMS notifikace"].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-gray-600">
-                    <Check weight="bold" className="w-5 h-5 text-orange-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link 
-                to="/registrace?role=supplier&type=osvc" 
-                className="block w-full text-center py-3 px-6 border border-gray-200 rounded-full font-medium text-gray-700 hover:border-orange-500 hover:text-orange-500 transition-colors"
-                data-testid="pricing-osvc-btn"
-              >
-                Registrovat se jako dodavatel
+                Začít jako dodavatel
               </Link>
             </div>
           </div>

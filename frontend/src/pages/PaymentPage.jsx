@@ -200,7 +200,7 @@ const PricingPage = () => {
     }
   };
 
-  const planOrder = ['zakaznik', 'nepodnikatel', 'osvc'];
+  const planOrder = ['zakaznik', 'dodavatel'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -222,14 +222,14 @@ const PricingPage = () => {
       </header>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-16">
+      <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <span className="text-orange-500 font-bold text-sm tracking-wider uppercase">Ceník</span>
           <h1 className="text-4xl font-bold text-gray-900 mt-2 mb-4">
-            Transparentní ceny.<br />Žádné skryté poplatky.
+            Jednoduchý a férový ceník.
           </h1>
           <p className="text-gray-600 text-lg">
-            Vyberte si tarif, který vám vyhovuje. Všechny tarify mají 14 dní zdarma.
+            Vyberte si tarif podle toho, zda hledáte řemeslníka nebo nabízíte služby.
           </p>
         </div>
 
@@ -238,25 +238,25 @@ const PricingPage = () => {
             <Spinner className="w-12 h-12 text-orange-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            {planOrder.map((planId, index) => {
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            {planOrder.map((planId) => {
               const plan = plans[planId];
               if (!plan) return null;
-              const isPopular = planId === 'nepodnikatel';
+              const isDodavatel = planId === 'dodavatel';
 
               return (
                 <div
                   key={planId}
                   className={`bg-white rounded-2xl p-8 ${
-                    isPopular 
+                    isDodavatel 
                       ? 'ring-2 ring-orange-500 shadow-xl relative' 
                       : 'border border-gray-200 shadow-lg'
                   }`}
                 >
-                  {isPopular && (
+                  {isDodavatel && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                       <span className="bg-orange-500 text-white text-sm font-bold px-4 py-1 rounded-full">
-                        DOPORUČENO
+                        PRO ŘEMESLNÍKY
                       </span>
                     </div>
                   )}
@@ -268,7 +268,7 @@ const PricingPage = () => {
                     <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
                     <span className="text-gray-500 ml-2">Kč/měsíc</span>
                   </div>
-                  <p className="text-orange-500 text-sm mb-6">{plan.trial_days} dní zdarma</p>
+                  <p className="text-orange-500 text-sm mb-6">{plan.trial_days} dní zdarma na vyzkoušení</p>
 
                   <ul className="space-y-3 mb-8">
                     {planId === 'zakaznik' && (
@@ -283,7 +283,11 @@ const PricingPage = () => {
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Hodnocení s fotografiemi
+                          Hodnocení a recenze
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
+                          Chat s dodavateli
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
@@ -291,7 +295,7 @@ const PricingPage = () => {
                         </li>
                       </>
                     )}
-                    {planId === 'nepodnikatel' && (
+                    {planId === 'dodavatel' && (
                       <>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
@@ -299,7 +303,7 @@ const PricingPage = () => {
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Badge "Prověřený subjekt"
+                          Badge "Ověřený dodavatel"
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
@@ -311,31 +315,7 @@ const PricingPage = () => {
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          E-mail a SMS notifikace
-                        </li>
-                      </>
-                    )}
-                    {planId === 'osvc' && (
-                      <>
-                        <li className="flex items-center gap-2 text-gray-600">
-                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Přístup ke všem zakázkám
-                        </li>
-                        <li className="flex items-center gap-2 text-gray-600">
-                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Badge "Prověřený subjekt"
-                        </li>
-                        <li className="flex items-center gap-2 text-gray-600">
-                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Statistiky a přehledy
-                        </li>
-                        <li className="flex items-center gap-2 text-gray-600">
-                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Prioritní zobrazení v katalogu
-                        </li>
-                        <li className="flex items-center gap-2 text-gray-600">
-                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Fakturace na IČO
+                          Chat se zákazníky
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
@@ -349,9 +329,9 @@ const PricingPage = () => {
                     onClick={() => handleSubscribe(planId)}
                     disabled={processingPlan !== null}
                     className={`w-full py-3 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-                      isPopular
+                      isDodavatel
                         ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                        : 'bg-gray-900 hover:bg-gray-800 text-white'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {processingPlan === planId ? (
@@ -362,7 +342,7 @@ const PricingPage = () => {
                     ) : (
                       <>
                         <CreditCard weight="bold" />
-                        {planId === 'zakaznik' ? 'Registrovat se' : 'Registrovat se jako dodavatel'}
+                        {planId === 'zakaznik' ? 'Začít jako zákazník' : 'Začít jako dodavatel'}
                       </>
                     )}
                   </button>
