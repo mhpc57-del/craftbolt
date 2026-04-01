@@ -15,6 +15,7 @@ import ProfilePage from './pages/ProfilePage';
 import { PaymentSuccess, PaymentCancelled, PricingPage } from './pages/PaymentPage';
 import TermsPage from './pages/TermsPage';
 import ContactPage from './pages/ContactPage';
+import RecurringPaymentsPage from './pages/RecurringPaymentsPage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -144,6 +145,7 @@ function App() {
           {/* Legal routes */}
           <Route path="/obchodni-podminky" element={<TermsPage />} />
           <Route path="/kontakt" element={<ContactPage />} />
+          <Route path="/podminky-opakovanych-plateb" element={<RecurringPaymentsPage />} />
           
           {/* Dashboard router */}
           <Route path="/dashboard" element={
