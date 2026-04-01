@@ -194,6 +194,11 @@ const HomePage = () => {
               <p className="text-gray-600 text-lg mb-8">
                 Od zadání poptávky po dokončení zakázky. Pět jednoduchých kroků.
               </p>
+              <img 
+                src="https://images.unsplash.com/photo-1681505531034-8d67054e07f6?w=600&h=400&fit=crop" 
+                alt="Dohoda mezi zákazníkem a dodavatelem" 
+                className="rounded-2xl shadow-lg w-full"
+              />
             </div>
             <div className="space-y-6">
               {steps.map((step, index) => (
