@@ -370,28 +370,32 @@ async def get_user(user_id: str):
         raise HTTPException(status_code=404, detail="User not found")
     return user_to_response(user)
 
+class ProfileUpdate(BaseModel):
+    company_name: Optional[str] = None
+    phone: Optional[str] = None
+    ico: Optional[str] = None
+    dic: Optional[str] = None
+    address: Optional[str] = None
+    branch_address: Optional[str] = None
+    profile_image: Optional[str] = None
+    categories: Optional[List[str]] = None
+
 @api_router.put("/users/profile")
 async def update_profile(
-    company_name: Optional[str] = None,
-    address: Optional[str] = None,
-    phone: Optional[str] = None,
-    categories: Optional[List[str]] = None,
+    data: ProfileUpdate,
     current_user: dict = Depends(get_current_user)
 ):
     update_data = {}
-    if company_name is not None:
-        update_data["company_name"] = company_name
-    if address is not None:
-        update_data["address"] = address
-    if phone is not None:
-        update_data["phone"] = phone
-    if categories is not None:
-        update_data["categories"] = categories
+    for field in ["company_name", "phone", "ico", "dic", "address", "branch_address", "profile_image", "categories"]:
+        val = getattr(data, field)
+        if val is not None:
+            update_data[field] = val
     
     if update_data:
         await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
     
-    return {"message": "Profile updated"}
+    updated = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
+    return updated
 
 @api_router.post("/users/location")
 async def update_location(
