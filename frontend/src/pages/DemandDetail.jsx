@@ -1,0 +1,457 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth, API } from '../App';
+import axios from 'axios';
+import { 
+  ArrowLeft, MapPin, Calendar, User, Clock, Check, X,
+  PaperPlaneTilt, Star, ChatCircle, Phone
+} from '@phosphor-icons/react';
+
+const DemandDetail = () => {
+  const { id } = useParams();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [demand, setDemand] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const fetchData = async () => {
+    try {
+      const [demandRes, messagesRes] = await Promise.all([
+        axios.get(`${API}/demands/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/messages/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setDemand(demandRes.data);
+      setMessages(messagesRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id, token]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    setSending(true);
+    try {
+      const response = await axios.post(`${API}/messages`, {
+        demand_id: id,
+        content: newMessage.trim()
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setMessages([...messages, response.data]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert(error.response?.data?.detail || 'Nepodařilo se odeslat zprávu');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleAcceptDemand = async () => {
+    try {
+      await axios.post(`${API}/demands/${id}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Nepodařilo se přijmout zakázku');
+    }
+  };
+
+  const handleCompleteDemand = async () => {
+    try {
+      await axios.post(`${API}/demands/${id}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+      setShowReviewModal(true);
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Nepodařilo se dokončit zakázku');
+    }
+  };
+
+  const handleCancelDemand = async () => {
+    if (!window.confirm('Opravdu chcete zrušit tuto zakázku?')) return;
+    try {
+      await axios.post(`${API}/demands/${id}/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Nepodařilo se zrušit zakázku');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      open: 'bg-green-100 text-green-700',
+      in_progress: 'bg-blue-100 text-blue-700',
+      completed: 'bg-gray-100 text-gray-700',
+      cancelled: 'bg-red-100 text-red-700'
+    };
+    const labels = {
+      open: 'Otevřená',
+      in_progress: 'Probíhá',
+      completed: 'Dokončeno',
+      cancelled: 'Zrušeno'
+    };
+    return (
+      <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${styles[status]}`}>
+        {labels[status]}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (!demand) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Zakázka nenalezena</p>
+          <button onClick={() => navigate(-1)} className="text-orange-500 hover:text-orange-600">
+            Zpět
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const isCustomer = user?.id === demand.customer_id;
+  const isAssignedSupplier = user?.id === demand.assigned_supplier_id;
+  const canChat = isCustomer || isAssignedSupplier || (user?.role === 'supplier' && demand.status === 'open');
+  const canAccept = user?.role === 'supplier' && demand.status === 'open';
+  const canComplete = (isCustomer || isAssignedSupplier) && demand.status === 'in_progress';
+  const canCancel = isCustomer && (demand.status === 'open' || demand.status === 'in_progress');
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto flex items-center gap-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="flex-1">
+            <Link to="/" className="flex items-center">
+              <span className="text-xl font-bold text-gray-900">Craft</span>
+              <span className="text-xl font-bold text-orange-500">Bolt</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto p-4 sm:p-6">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Demand Info */}
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{demand.title}</h1>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(demand.status)}
+                    <span className="text-sm text-gray-500 px-3 py-1 bg-gray-100 rounded-full">
+                      {demand.category}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-gray-600 mb-6">{demand.description}</p>
+
+              <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <MapPin className="w-5 h-5 text-gray-400" />
+                  {demand.address}
+                </div>
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                  {new Date(demand.created_at).toLocaleDateString('cs-CZ')}
+                </div>
+                {demand.budget_max && (
+                  <div className="flex items-center gap-2 text-green-600 font-medium">
+                    Rozpočet: {demand.budget_min ? `${demand.budget_min} - ` : ''}{demand.budget_max} Kč
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100">
+                {canAccept && (
+                  <button
+                    onClick={handleAcceptDemand}
+                    className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl font-medium text-white transition-colors flex items-center gap-2"
+                    data-testid="accept-demand-btn"
+                  >
+                    <Check weight="bold" className="w-5 h-5" />
+                    Přijmout zakázku
+                  </button>
+                )}
+                {canComplete && (
+                  <button
+                    onClick={handleCompleteDemand}
+                    className="px-5 py-2.5 bg-green-500 hover:bg-green-600 rounded-xl font-medium text-white transition-colors flex items-center gap-2"
+                    data-testid="complete-demand-btn"
+                  >
+                    <Check weight="bold" className="w-5 h-5" />
+                    Označit jako dokončené
+                  </button>
+                )}
+                {canCancel && (
+                  <button
+                    onClick={handleCancelDemand}
+                    className="px-5 py-2.5 border border-red-200 hover:bg-red-50 rounded-xl font-medium text-red-600 transition-colors flex items-center gap-2"
+                    data-testid="cancel-demand-btn"
+                  >
+                    <X weight="bold" className="w-5 h-5" />
+                    Zrušit zakázku
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Chat */}
+            {canChat && (
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+                  <ChatCircle className="w-5 h-5 text-gray-400" />
+                  <h2 className="font-semibold text-gray-900">Chat</h2>
+                </div>
+
+                <div className="h-80 overflow-y-auto p-4 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                      Zatím žádné zprávy. Začněte konverzaci.
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div 
+                        key={msg.id}
+                        className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                          msg.sender_id === user?.id 
+                            ? 'bg-orange-500 text-white' 
+                            : 'bg-gray-100 text-gray-900'
+                        }`}>
+                          <p className={`text-xs mb-1 ${msg.sender_id === user?.id ? 'text-orange-100' : 'text-gray-500'}`}>
+                            {msg.sender_name}
+                          </p>
+                          <p className="text-sm">{msg.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 flex gap-3">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Napište zprávu..."
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    data-testid="message-input"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || !newMessage.trim()}
+                    className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-white transition-colors disabled:opacity-50"
+                    data-testid="send-message-btn"
+                  >
+                    <PaperPlaneTilt weight="fill" className="w-5 h-5" />
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Customer Info */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Zákazník</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{demand.customer_name}</p>
+                  <p className="text-sm text-gray-500">Zákazník</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Supplier Info */}
+            {demand.assigned_supplier_id && (
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">Přiřazený dodavatel</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                    <User className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{demand.assigned_supplier_name}</p>
+                    <p className="text-sm text-gray-500">Dodavatel</p>
+                  </div>
+                </div>
+                {demand.accepted_at && (
+                  <p className="text-xs text-gray-400 mt-3">
+                    Přijato: {new Date(demand.accepted_at).toLocaleDateString('cs-CZ')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Map Placeholder */}
+            {demand.status === 'in_progress' && (
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-900">Poloha</h3>
+                </div>
+                <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400">Mapa s geolokací</p>
+                    <p className="text-xs text-gray-300">Brzy dostupné</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <ReviewModal 
+          demandId={id} 
+          token={token} 
+          onClose={() => setShowReviewModal(false)} 
+        />
+      )}
+    </div>
+  );
+};
+
+const ReviewModal = ({ demandId, token, onClose }) => {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await axios.post(`${API}/reviews`, {
+        demand_id: demandId,
+        rating,
+        comment
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      onClose();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Nepodařilo se odeslat hodnocení');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Ohodnoťte spolupráci</h2>
+          <button 
+            onClick={onClose}
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Hodnocení</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRating(value)}
+                  className="p-2"
+                  data-testid={`rating-${value}`}
+                >
+                  <Star 
+                    weight={value <= rating ? 'fill' : 'regular'} 
+                    className={`w-8 h-8 ${value <= rating ? 'text-orange-500' : 'text-gray-300'}`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Komentář</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Popište svou zkušenost..."
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
+              data-testid="review-comment-input"
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Přeskočit
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-xl disabled:opacity-50"
+              data-testid="submit-review-btn"
+            >
+              {loading ? 'Odesílání...' : 'Odeslat hodnocení'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default DemandDetail;
