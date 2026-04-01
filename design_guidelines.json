@@ -1,0 +1,100 @@
+{
+  "theme_and_archetype": {
+    "domain": "SaaS Marketplace / Services",
+    "theme": "Light",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) mixed with brand Orange accents.",
+    "rationale": "The platform requires authority, clarity, and function-first design to build trust between customers and providers. High contrast (Black/White) provides clarity, while the Orange accent drives action and matches the brand logo (CraftBolt)."
+  },
+  "typography": {
+    "primary_heading_font": "Outfit",
+    "secondary_body_font": "Manrope",
+    "anti_default_rule": "Inter, Roboto, Open Sans are BANNED. Headings must use Outfit.",
+    "hierarchy": {
+      "h1": "text-5xl sm:text-6xl tracking-tight font-bold",
+      "h2": "text-3xl sm:text-4xl tracking-tight font-semibold",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "labels": "text-xs tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "#FFFFFF",
+      "subtle": "#F8F9FA",
+      "muted": "#F1F3F5"
+    },
+    "text": {
+      "primary": "#0A0A0A",
+      "secondary": "#4B5563",
+      "muted": "#9CA3AF"
+    },
+    "brand_accent": {
+      "primary": "#F97316",
+      "hover": "#EA580C",
+      "light": "#FFF7ED"
+    },
+    "borders": {
+      "default": "#E5E7EB",
+      "focus": "#F97316"
+    }
+  },
+  "layout_and_spacing": {
+    "philosophy": "Generous Spacing, Mobile-First, Optical Alignment",
+    "scale": "Tailwind spacing: p-4, p-8, p-12, p-16, p-24, p-32",
+    "grids": {
+      "bento_advantages": "MODE A: Tetris Grid. grid-cols-1 md:grid-cols-8 lg:grid-cols-12, gap-8. Mix spans (col-span-4, col-span-8).",
+      "dashboard_control_room": "MODE B: Control Room Grid for Provider/Customer dashboards. Tight gaps (gap-4 or gap-6).",
+      "steps_how_it_works": "grid-cols-1 md:grid-cols-4 gap-8 with a connecting line (visible on md+)."
+    }
+  },
+  "components_strategy": {
+    "marketing_pages": "Custom HTML + Tailwind for hero, bento grid, and steps. Do NOT use standard Shadcn Cards for creative layouts.",
+    "dashboard_and_forms": "Use highly customized Shadcn components (Input, Select, Form, Dialog, Tabs) for the multi-step registration and dashboard.",
+    "pricing": "3 Cards layout. 1px solid border. The 'Zákazník' card (190 Kč), 'Nepodnikatel' (290 Kč), 'OSVČ/firmy' (490 Kč). Highlight the middle/popular tier with an Orange border.",
+    "video_section": "Large 16:9 aspect ratio container (max-h-[80vh]), rounded-2xl, overflow-hidden, with a play button centered (glassmorphism style).",
+    "cards_dashboard": "Flat backgrounds, 1px subtle border, no shadow by default. On hover: slight lift (-translate-y-1) and shadow-lg."
+  },
+  "surfaces": {
+    "header": "Crystal Glassmorphism: bg-white/70, backdrop-blur-xl, border-b border-black/5. Sticky z-50.",
+    "modals_and_overlays": "High-end glass: backdrop-blur-xl bg-white/80, 1px border border-black/10.",
+    "bento_items": "Solid subtle background (#F8F9FA), 1px border (#E5E7EB), internal padding p-6 or p-8."
+  },
+  "motion_and_interactions": {
+    "hover_states": "Buttons: hover:bg-orange-600 hover:text-white transition-colors duration-200.",
+    "entrance": "Staggered fade-up for bento grid items and pricing cards.",
+    "focus": "focus:ring-2 focus:ring-orange-500/50 focus:outline-none."
+  },
+  "icons_and_assets": {
+    "library": "Phosphor Icons (@phosphor-icons/react) - Duotone weight for marketing, Regular for dashboards.",
+    "data_testid": "ALL interactive elements must include a data-testid attribute (e.g., login-form-submit-button)."
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1608613304810-2d4dd52511a2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxjcmFmdHNtYW4lMjB3b3JraW5nJTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3NTAxNjAzMXww&ixlib=rb-4.1.0&q=85",
+      "description": "Craftsman with a red/black drill, to be used in the hero section or video section placeholder."
+    },
+    "feature_woodworker": {
+      "url": "https://images.unsplash.com/photo-1756736668479-140dfe2b0fe6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxjcmFmdHNtYW4lMjB3b3JraW5nJTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3NTAxNjAzMXww&ixlib=rb-4.1.0&q=85",
+      "description": "Carpenter working on wood, suitable for 'How it works' or features grid."
+    },
+    "dashboard_map_tracking": {
+      "url": "https://images.unsplash.com/photo-1767873691315-c9e61c705b25?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxncHMlMjBtYXAlMjBuYXZpZ2F0aW9uJTIwc2NyZWVufGVufDB8fHx8MTc3NTAxNjA1NXww&ixlib=rb-4.1.0&q=85",
+      "description": "GPS navigation screen, abstract representation for the real-time tracking feature map."
+    },
+    "city_map_route": {
+       "url": "https://images.pexels.com/photos/38271/ipad-map-tablet-internet-38271.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+       "description": "Person holding map on tablet. Use for geolocation feature."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the JSON guidelines for color, typography, and spacing.",
+    "Start by implementing the Homepage layout first (Hero, 10 Advantages Bento Grid, 4 Steps How it Works, Video Section, Pricing).",
+    "For the Logo, use text 'CraftBolt' with 'Craft' styled in black (#0A0A0A) and 'Bolt' styled in primary orange (#F97316).",
+    "Implement multi-step registration (Basic Info -> Role Selection -> Plan Type -> Details -> Category).",
+    "Use Phosphor icons for all iconography. DO NOT use generic placeholder icons.",
+    "For the dashboards (Customer and Provider), use the Control Room Grid layout, keeping it dense and highly functional. Add tracking map placeholder using 'dashboard_map_tracking' image.",
+    "Ensure all buttons and interactive elements have appropriate focus, hover states, and 'data-testid' attributes.",
+    "For the 3 pricing tiers: 1. Zákazník (190 Kč), 2. Nepodnikatel (290 Kč), 3. OSVČ/firmy (490 Kč)."
+  ]
+}
