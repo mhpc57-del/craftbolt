@@ -228,7 +228,7 @@ const HomePage = () => {
                 Sjednávání zakázek přes naši platformu je pohodlné, rychlé, efektivní a máte vždy jasný přehled o svých zakázkách. Veškerá historie (zakázky, chat, fotografie, hodnocení či případné spory) se Vám nikdy neztratí a zůstanou na vašem profilu uložené. Řešení případných sporů nebo nedorozumění je přes tuto platformu vždy bezpečnější a prokazatelnější. Pokud ke sporu dojde, můžete požádat také naši podporu o pomoc, která Vám bude vždy nápomocná a bude se snažit vše vyřešit ke spokojenosti obou smluvních stran.
               </p>
               <p className="font-semibold text-orange-600">
-                Doporučení: Nikdy neřešte spor osobně po telefonu. Vždy pamatujte na to, že co je psáno, to je dáno!
+                Doporučení: Nikdy neřešte spor osobně či po telefonu. Vždy pamatujte na to, že co je psáno, to je dáno!
               </p>
             </div>
           </div>
