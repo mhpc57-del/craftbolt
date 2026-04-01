@@ -141,8 +141,8 @@ const HomePage = () => {
                 </div>
                 <div className="w-px h-10 bg-gray-200"></div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">0%</div>
-                  <div className="text-sm text-gray-500">provize</div>
+                  <div className="text-3xl font-bold text-gray-900">od 99</div>
+                  <div className="text-sm text-gray-500">Kč/měs</div>
                 </div>
                 <div className="w-px h-10 bg-gray-200"></div>
                 <div className="text-center">
