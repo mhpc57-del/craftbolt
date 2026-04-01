@@ -612,31 +612,6 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Rozpočet od (Kč)</label>
-              <input
-                type="number"
-                value={formData.budget_min}
-                onChange={(e) => setFormData(prev => ({ ...prev, budget_min: e.target.value }))}
-                placeholder="0"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                data-testid="demand-budget-min-input"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Rozpočet do (Kč)</label>
-              <input
-                type="number"
-                value={formData.budget_max}
-                onChange={(e) => setFormData(prev => ({ ...prev, budget_max: e.target.value }))}
-                placeholder="0"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                data-testid="demand-budget-max-input"
-              />
-            </div>
-          </div>
-
           <div className="flex gap-4 pt-4">
             <button
               type="button"
