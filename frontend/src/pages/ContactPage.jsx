@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Envelope, Phone, MapPin, Clock } from '@phosphor-icons/react';
+import { ArrowLeft, Envelope, MapPin, Clock } from '@phosphor-icons/react';
 
 const ContactPage = () => {
   return (
@@ -43,20 +43,6 @@ const ContactPage = () => {
                   <a href="mailto:info@craftbolt.cz" className="text-orange-500 hover:text-orange-600">
                     info@craftbolt.cz
                   </a>
-                  <p className="text-sm text-gray-500 mt-1">Pro obecné dotazy</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Phone weight="fill" className="w-6 h-6 text-orange-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Telefon</h3>
-                  <a href="tel:+420123456789" className="text-orange-500 hover:text-orange-600">
-                    +420 123 456 789
-                  </a>
-                  <p className="text-sm text-gray-500 mt-1">Zákaznická podpora</p>
                 </div>
               </div>
 
@@ -67,9 +53,9 @@ const ContactPage = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900">Adresa</h3>
                   <p className="text-gray-600">
-                    CraftBolt s.r.o.<br />
-                    Příkladová 123<br />
-                    110 00 Praha 1<br />
+                    Provozovatel: AC/DC MONT s.r.o.<br />
+                    Sportovní 7<br />
+                    789 63 Ruda nad Moravou<br />
                     Česká republika
                   </p>
                 </div>
@@ -82,7 +68,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900">Provozní doba podpory</h3>
                   <p className="text-gray-600">
-                    Pondělí – Pátek: 8:00 – 17:00<br />
+                    Pondělí – Pátek: 8:00 – 16:00<br />
                     Sobota – Neděle: Zavřeno
                   </p>
                 </div>
@@ -167,15 +153,14 @@ const ContactPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Fakturační údaje</h2>
           <div className="grid md:grid-cols-2 gap-6 text-gray-600">
             <div>
-              <p><strong>Název společnosti:</strong> CraftBolt s.r.o.</p>
-              <p><strong>Sídlo:</strong> Příkladová 123, 110 00 Praha 1</p>
-              <p><strong>IČO:</strong> 12345678</p>
-              <p><strong>DIČ:</strong> CZ12345678</p>
+              <p><strong>Provozovatel:</strong> AC/DC MONT s.r.o.</p>
+              <p><strong>Sídlo:</strong> Sportovní 7, 789 63 Ruda nad Moravou</p>
+              <p><strong>IČO:</strong> 097 44 550</p>
+              <p><strong>DIČ:</strong> CZ09744550</p>
             </div>
             <div>
-              <p><strong>Bankovní spojení:</strong> Fio banka</p>
-              <p><strong>Číslo účtu:</strong> 1234567890/2010</p>
-              <p><strong>IBAN:</strong> CZ12 2010 0000 0012 3456 7890</p>
+              <p><strong>Zapsáno:</strong> v obchodním rejstříku vedeném</p>
+              <p>Krajským soudem v Ostravě</p>
             </div>
           </div>
         </div>
