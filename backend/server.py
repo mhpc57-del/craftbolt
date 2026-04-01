@@ -69,7 +69,10 @@ class UserCreate(BaseModel):
     supplier_type: Optional[str] = None  # osvc, nepodnikatel, company
     company_name: Optional[str] = None
     ico: Optional[str] = None
+    dic: Optional[str] = None
     address: Optional[str] = None
+    branch_address: Optional[str] = None
+    profile_image: Optional[str] = None
     categories: Optional[List[str]] = []
 
 class UserLogin(BaseModel):
@@ -85,7 +88,10 @@ class UserResponse(BaseModel):
     supplier_type: Optional[str] = None
     company_name: Optional[str] = None
     ico: Optional[str] = None
+    dic: Optional[str] = None
     address: Optional[str] = None
+    branch_address: Optional[str] = None
+    profile_image: Optional[str] = None
     categories: List[str] = []
     is_verified: bool = False
     trial_ends_at: Optional[str] = None
@@ -312,7 +318,10 @@ async def register(user_data: UserCreate):
         "supplier_type": user_data.supplier_type,
         "company_name": user_data.company_name,
         "ico": user_data.ico,
+        "dic": user_data.dic,
         "address": user_data.address,
+        "branch_address": user_data.branch_address,
+        "profile_image": user_data.profile_image,
         "categories": user_data.categories or [],
         "is_verified": False,
         "trial_ends_at": trial_end.isoformat(),
@@ -437,6 +446,55 @@ async def geocode_reverse(lat: float, lon: float):
             headers={"User-Agent": "CraftBolt/1.0"}
         )
         return response.json()
+
+# ============ ARES ROUTES ============
+
+@api_router.get("/ares/{ico}")
+async def ares_lookup(ico: str):
+    """Lookup company info from Czech ARES registry by ICO"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client_http:
+            response = await client_http.get(
+                f"https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ico}"
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=404, detail="IČO nenalezeno v registru ARES")
+            data = response.json()
+            
+            result = {
+                "company_name": data.get("obchodniJmeno", ""),
+                "ico": data.get("ico", ico),
+                "dic": "",
+                "address": ""
+            }
+            
+            # Extract DIC
+            dic_list = data.get("dic", []) if isinstance(data.get("dic"), list) else []
+            if dic_list:
+                result["dic"] = dic_list[0] if dic_list else ""
+            elif isinstance(data.get("dic"), str):
+                result["dic"] = data.get("dic", "")
+            
+            # Extract address
+            sidlo = data.get("sidlo", {})
+            if sidlo:
+                parts = []
+                if sidlo.get("nazevUlice"):
+                    street = sidlo["nazevUlice"]
+                    if sidlo.get("cisloDomovni"):
+                        street += f" {sidlo['cisloDomovni']}"
+                    if sidlo.get("cisloOrientacni"):
+                        street += f"/{sidlo['cisloOrientacni']}"
+                    parts.append(street)
+                if sidlo.get("psc"):
+                    parts.append(str(sidlo["psc"]))
+                if sidlo.get("nazevObce"):
+                    parts.append(sidlo["nazevObce"])
+                result["address"] = ", ".join(parts)
+            
+            return result
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="ARES služba není dostupná")
 
 # ============ UPLOAD ROUTES ============
 

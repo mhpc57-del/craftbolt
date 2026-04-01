@@ -5,7 +5,7 @@ import axios from 'axios';
 import { API } from '../App';
 import { 
   Eye, EyeSlash, ArrowLeft, ArrowRight, User, Briefcase, 
-  Buildings, UserCircle, Check, MapPin
+  Buildings, UserCircle, Check, MapPin, Camera, MagnifyingGlass, Image as ImageIcon, X
 } from '@phosphor-icons/react';
 
 const STEPS = ['basic', 'role', 'type', 'details', 'categories'];
@@ -17,6 +17,8 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [aresLoading, setAresLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -26,7 +28,10 @@ const RegisterPage = () => {
     supplier_type: searchParams.get('type') || '',
     company_name: '',
     ico: '',
+    dic: '',
     address: '',
+    branch_address: '',
+    profile_image: '',
     categories: []
   });
   
@@ -34,7 +39,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch categories
     const fetchCategories = async () => {
       try {
         const response = await axios.get(`${API}/categories`);
@@ -45,13 +49,6 @@ const RegisterPage = () => {
     };
     fetchCategories();
   }, []);
-
-  // Skip steps based on role
-  useEffect(() => {
-    if (formData.role === 'customer' && currentStep === 2) {
-      setCurrentStep(3); // Skip type selection for customers
-    }
-  }, [currentStep, formData.role]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,12 +64,56 @@ const RegisterPage = () => {
     }));
   };
 
+  // ARES lookup
+  const handleAresLookup = async () => {
+    if (!formData.ico || formData.ico.length < 7) {
+      setError('Zadejte platné IČO (min. 7 číslic)');
+      return;
+    }
+    setAresLoading(true);
+    setError('');
+    try {
+      const response = await axios.get(`${API}/ares/${formData.ico}`);
+      const data = response.data;
+      setFormData(prev => ({
+        ...prev,
+        company_name: data.company_name || prev.company_name,
+        dic: data.dic || prev.dic,
+        address: data.address || prev.address
+      }));
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Nepodařilo se načíst údaje z ARES');
+    } finally {
+      setAresLoading(false);
+    }
+  };
+
+  // Profile photo upload
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const response = await axios.post(`${API}/upload`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setFormData(prev => ({ ...prev, profile_image: response.data.url }));
+    } catch (err) {
+      setError('Nepodařilo se nahrát fotografii');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const validateStep = () => {
     setError('');
     switch (STEPS[currentStep]) {
       case 'basic':
-        if (!formData.email || !formData.password || !formData.phone) {
-          setError('Vyplňte prosím všechna pole');
+        if (!formData.email || !formData.password) {
+          setError('Vyplňte e-mail a heslo');
           return false;
         }
         if (formData.password.length < 6) {
@@ -87,21 +128,23 @@ const RegisterPage = () => {
         }
         break;
       case 'type':
-        if (formData.role === 'supplier' && !formData.supplier_type) {
+        if (!formData.supplier_type) {
           setError('Vyberte prosím typ účtu');
           return false;
         }
         break;
       case 'details':
-        if (formData.role === 'supplier') {
-          if (!formData.company_name || !formData.address) {
-            setError('Vyplňte prosím všechna povinná pole');
-            return false;
-          }
-          if ((formData.supplier_type === 'osvc' || formData.supplier_type === 'company') && !formData.ico) {
-            setError('Vyplňte prosím IČO');
-            return false;
-          }
+        if (!formData.company_name) {
+          setError('Vyplňte jméno a příjmení / název firmy');
+          return false;
+        }
+        if (!formData.phone) {
+          setError('Vyplňte telefonní číslo');
+          return false;
+        }
+        if (!formData.email) {
+          setError('Vyplňte e-mail');
+          return false;
         }
         break;
       case 'categories':
@@ -117,7 +160,6 @@ const RegisterPage = () => {
   const handleNext = () => {
     if (!validateStep()) return;
     
-    // Skip categories for customers
     if (formData.role === 'customer' && STEPS[currentStep] === 'details') {
       handleSubmit();
       return;
@@ -125,11 +167,9 @@ const RegisterPage = () => {
     
     if (currentStep < STEPS.length - 1) {
       let nextStep = currentStep + 1;
-      // Skip type for customers
       if (formData.role === 'customer' && STEPS[nextStep] === 'type') {
         nextStep++;
       }
-      // Skip categories for customers
       if (formData.role === 'customer' && STEPS[nextStep] === 'categories') {
         handleSubmit();
         return;
@@ -143,7 +183,6 @@ const RegisterPage = () => {
   const handleBack = () => {
     if (currentStep > 0) {
       let prevStep = currentStep - 1;
-      // Skip type for customers when going back
       if (formData.role === 'customer' && STEPS[prevStep] === 'type') {
         prevStep--;
       }
@@ -207,18 +246,6 @@ const RegisterPage = () => {
                   {showPassword ? <EyeSlash className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="+420 xxx xxx xxx"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                data-testid="register-phone-input"
-              />
             </div>
           </div>
         );
@@ -322,67 +349,159 @@ const RegisterPage = () => {
 
       case 'details':
         return (
-          <div className="space-y-5">
-            {formData.role === 'supplier' ? (
-              <>
-                {(formData.supplier_type === 'osvc' || formData.supplier_type === 'company') && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">IČO</label>
-                    <input
-                      type="text"
-                      name="ico"
-                      value={formData.ico}
-                      onChange={handleInputChange}
-                      placeholder="12345678"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                      data-testid="register-ico-input"
-                    />
+          <div className="space-y-4">
+            {/* Profile photo / Logo */}
+            <div className="flex justify-center mb-2">
+              <div className="relative">
+                {formData.profile_image ? (
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-orange-200">
+                    <img src={`${API.replace('/api', '')}${formData.profile_image}`} alt="Profil" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <UserCircle className="w-10 h-10 text-gray-400" />
                   </div>
                 )}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {formData.supplier_type === 'nepodnikatel' ? 'Jméno a příjmení' : 'Název firmy / Jméno'}
-                  </label>
-                  <input
-                    type="text"
-                    name="company_name"
-                    value={formData.company_name}
-                    onChange={handleInputChange}
-                    placeholder={formData.supplier_type === 'nepodnikatel' ? 'Jan Novák' : 'Název'}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                    data-testid="register-company-input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Adresa</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      placeholder="Zadejte adresu"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                      data-testid="register-address-input"
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Jméno (volitelné)</label>
+                <label className="absolute bottom-0 right-0 w-8 h-8 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors" data-testid="upload-profile-photo-btn">
+                  {uploadingPhoto ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div>
+                  ) : (
+                    <Camera weight="fill" className="w-4 h-4 text-white" />
+                  )}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" disabled={uploadingPhoto} />
+                </label>
+              </div>
+            </div>
+            <p className="text-center text-xs text-gray-400 -mt-2 mb-2">Logo nebo fotografie</p>
+
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Jméno a příjmení / název firmy <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="company_name"
+                value={formData.company_name}
+                onChange={handleInputChange}
+                placeholder="Jan Novák / Firma s.r.o."
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                data-testid="register-company-input"
+              />
+            </div>
+
+            {/* ICO with ARES button */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">IČO</label>
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  name="company_name"
-                  value={formData.company_name}
+                  name="ico"
+                  value={formData.ico}
                   onChange={handleInputChange}
-                  placeholder="Vaše jméno"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                  data-testid="register-name-input"
+                  placeholder="12345678"
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  data-testid="register-ico-input"
+                />
+                <button
+                  type="button"
+                  onClick={handleAresLookup}
+                  disabled={aresLoading || !formData.ico}
+                  className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+                  data-testid="ares-lookup-btn"
+                >
+                  {aresLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
+                  ) : (
+                    <MagnifyingGlass className="w-4 h-4" />
+                  )}
+                  Načíst z ARES
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Zadejte IČO a klikněte pro automatické vyplnění údajů</p>
+            </div>
+
+            {/* DIC */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">DIČ</label>
+              <input
+                type="text"
+                name="dic"
+                value={formData.dic}
+                onChange={handleInputChange}
+                placeholder="CZ12345678"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                data-testid="register-dic-input"
+              />
+            </div>
+
+            {/* Sídlo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sídlo</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Ulice, PSČ Město"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  data-testid="register-address-input"
                 />
               </div>
-            )}
+            </div>
+
+            {/* Pobočka */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Pobočka</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  name="branch_address"
+                  value={formData.branch_address}
+                  onChange={handleInputChange}
+                  placeholder="Adresa pobočky (pokud se liší od sídla)"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  data-testid="register-branch-input"
+                />
+              </div>
+            </div>
+
+            {/* Tel. číslo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Telefonní číslo <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="+420 xxx xxx xxx"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                data-testid="register-phone-input"
+              />
+            </div>
+
+            {/* Email (pre-filled, readonly info) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                E-mail <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="vas@email.cz"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
+                data-testid="register-email-readonly"
+                readOnly
+              />
+              <p className="text-xs text-gray-400 mt-1">Zadáno v prvním kroku</p>
+            </div>
           </div>
         );
 
@@ -426,13 +545,12 @@ const RegisterPage = () => {
       case 'basic': return 'Základní údaje';
       case 'role': return 'Výběr role';
       case 'type': return 'Typ účtu';
-      case 'details': return 'Detaily';
+      case 'details': return 'Údaje o účtu';
       case 'categories': return 'Kategorie';
       default: return '';
     }
   };
 
-  // Calculate visible steps for progress indicator
   const getVisibleSteps = () => {
     if (formData.role === 'customer') {
       return ['basic', 'role', 'details'];
@@ -445,7 +563,6 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b border-gray-100 py-4 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center">
@@ -459,7 +576,6 @@ const RegisterPage = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
