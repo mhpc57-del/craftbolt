@@ -357,11 +357,33 @@ const HomePage = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center">
-              <span className="text-2xl font-bold">Craft</span>
-              <span className="text-2xl font-bold text-orange-500">Bolt</span>
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center mb-4">
+                <span className="text-2xl font-bold">Craft</span>
+                <span className="text-2xl font-bold text-orange-500">Bolt</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Platforma pro propojení zákazníků s ověřenými řemeslníky v okolí.
+              </p>
             </div>
+            <div>
+              <h4 className="font-semibold mb-4">Užitečné odkazy</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/cenik" className="hover:text-orange-400 transition-colors">Ceník</Link></li>
+                <li><Link to="/registrace" className="hover:text-orange-400 transition-colors">Registrace</Link></li>
+                <li><Link to="/prihlaseni" className="hover:text-orange-400 transition-colors">Přihlášení</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Právní informace</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/obchodni-podminky" className="hover:text-orange-400 transition-colors">Obchodní podmínky</Link></li>
+                <li><Link to="/kontakt" className="hover:text-orange-400 transition-colors">Kontakt</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 text-center">
             <p className="text-gray-400 text-sm">
               © 2026 CraftBolt. Všechna práva vyhrazena.
             </p>

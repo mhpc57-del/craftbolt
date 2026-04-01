@@ -13,6 +13,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import DemandDetail from './pages/DemandDetail';
 import ProfilePage from './pages/ProfilePage';
 import { PaymentSuccess, PaymentCancelled, PricingPage } from './pages/PaymentPage';
+import TermsPage from './pages/TermsPage';
+import ContactPage from './pages/ContactPage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -138,6 +140,10 @@ function App() {
           {/* Payment routes */}
           <Route path="/platba/uspech" element={<PaymentSuccess />} />
           <Route path="/platba/zruseno" element={<PaymentCancelled />} />
+          
+          {/* Legal routes */}
+          <Route path="/obchodni-podminky" element={<TermsPage />} />
+          <Route path="/kontakt" element={<ContactPage />} />
           
           {/* Dashboard router */}
           <Route path="/dashboard" element={
