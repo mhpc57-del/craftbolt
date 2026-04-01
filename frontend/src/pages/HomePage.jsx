@@ -24,7 +24,6 @@ import StepsSlider from '../components/StepsSlider';
 const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const [showVideo, setShowVideo] = useState(false);
   const [showCookies, setShowCookies] = useState(true);
   const [activeStep, setActiveStep] = useState(null);
 
@@ -245,25 +244,20 @@ const HomePage = () => {
       {/* Video Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div 
-            className="relative rounded-2xl overflow-hidden bg-gray-900 aspect-video cursor-pointer group"
-            onClick={() => setShowVideo(true)}
-          >
-            <img 
-              src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=1200&h=675&fit=crop" 
-              alt="Video placeholder" 
-              className="w-full h-full object-cover opacity-70 group-hover:opacity-60 transition-opacity"
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-              <span className="text-sm tracking-widest uppercase mb-4">Podívejte se</span>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-8">Jak CraftBolt funguje v praxi</h2>
-              <button 
-                className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors hover:scale-105 transform"
-                data-testid="play-video-btn"
-              >
-                <Play weight="fill" className="w-8 h-8 text-white ml-1" />
-              </button>
-            </div>
+          <div className="text-center mb-8">
+            <span className="text-sm tracking-widest uppercase text-gray-500">Podívejte se</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">Jak CraftBolt funguje v praxi</h2>
+          </div>
+          <div className="relative rounded-2xl overflow-hidden bg-gray-900 aspect-video shadow-2xl">
+            <iframe
+              src="https://www.youtube.com/embed/eR8_-m_mYoE?rel=0"
+              title="Jak CraftBolt funguje"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+              data-testid="promo-video-youtube"
+            ></iframe>
           </div>
         </div>
       </section>
@@ -399,30 +393,6 @@ const HomePage = () => {
                 Přijmout vše
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Video Modal */}
-      {showVideo && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowVideo(false)} data-testid="video-modal">
-          <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={() => setShowVideo(false)}
-              className="absolute -top-12 right-0 text-white hover:text-orange-400 transition-colors"
-              data-testid="close-video-btn"
-            >
-              <X weight="bold" className="w-8 h-8" />
-            </button>
-            <video 
-              controls 
-              autoPlay 
-              className="w-full rounded-xl shadow-2xl"
-              data-testid="promo-video"
-            >
-              <source src={`${API.replace('/api', '')}/api/uploads/promo_video.mp4`} type="video/mp4" />
-              Váš prohlížeč nepodporuje přehrávání videa.
-            </video>
           </div>
         </div>
       )}
