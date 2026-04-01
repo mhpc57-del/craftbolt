@@ -927,14 +927,14 @@ SUBSCRIPTION_PLANS = {
     "zakaznik": {
         "name": "Zákazník",
         "price": 99.0,  # CZK
-        "description": "Neomezený počet poptávek, výběr z ověřených dodavatelů",
+        "description": "Neomezený počet zadání, výběr z ověřených dodavatelů",
         "role": "customer",
         "trial_days": 14
     },
     "dodavatel": {
         "name": "Dodavatel",
-        "price": 390.0,  # CZK
-        "description": "Přístup ke všem zakázkám, statistiky, prioritní zobrazení",
+        "price": 399.0,  # CZK
+        "description": "Neomezený přístup k zakázkám, ověřený profil",
         "role": "supplier",
         "trial_days": 14
     }

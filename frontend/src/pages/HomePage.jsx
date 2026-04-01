@@ -290,7 +290,7 @@ const HomePage = () => {
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
               <ul className="space-y-3 mb-8">
-                {["Neomezený počet poptávek", "Výběr z ověřených dodavatelů", "Hodnocení a recenze", "Chat s dodavateli", "E-mail a SMS notifikace"].map((item, i) => (
+                {["Neomezený počet zadání", "Výběr z ověřených dodavatelů", "Online chat s dodavateli", "Zamítnutí nabídek", "Úpravy stávajících nabídek", "Vkládání fotografií", "Notifikace (APP, E-mail, SMS)"].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-gray-600">
                     <Check weight="bold" className="w-5 h-5 text-orange-500" />
                     {item}
@@ -314,13 +314,13 @@ const HomePage = () => {
               <div className="mb-6">
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Dodavatel</span>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-5xl font-bold text-gray-900">390</span>
+                  <span className="text-5xl font-bold text-gray-900">399</span>
                   <span className="text-gray-500">Kč/měsíc</span>
                 </div>
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
               <ul className="space-y-3 mb-8">
-                {["Přístup ke všem zakázkám", "Badge \"Ověřený dodavatel\"", "Statistiky a přehledy", "Prioritní zobrazení v katalogu", "Chat se zákazníky", "E-mail a SMS notifikace"].map((item, i) => (
+                {["Neomezený přístup k zakázkám", "Výběr zakázky dle svých možností", "Online chat se zákazníky", "Ověřený profil nahráním oprávnění", "Volba více kategorií", "Vkládání fotografií", "Notifikace (APP, E-mail, SMS)"].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-gray-600">
                     <Check weight="bold" className="w-5 h-5 text-orange-500" />
                     {item}

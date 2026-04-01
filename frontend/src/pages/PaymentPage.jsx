@@ -275,7 +275,7 @@ const PricingPage = () => {
                       <>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Neomezený počet poptávek
+                          Neomezený počet zadání
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
@@ -283,15 +283,23 @@ const PricingPage = () => {
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Hodnocení a recenze
+                          Online chat s dodavateli
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Chat s dodavateli
+                          Zamítnutí nabídek
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          E-mail a SMS notifikace
+                          Úpravy stávajících nabídek
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
+                          Vkládání fotografií
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
+                          Notifikace (APP, E-mail, SMS)
                         </li>
                       </>
                     )}
@@ -299,27 +307,31 @@ const PricingPage = () => {
                       <>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Přístup ke všem zakázkám
+                          Neomezený přístup k zakázkám
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Badge "Ověřený dodavatel"
+                          Výběr zakázky dle svých možností
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Statistiky a přehledy
+                          Online chat se zákazníky
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Prioritní zobrazení v katalogu
+                          Ověřený profil nahráním oprávnění
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          Chat se zákazníky
+                          Volba více kategorií
                         </li>
                         <li className="flex items-center gap-2 text-gray-600">
                           <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
-                          E-mail a SMS notifikace
+                          Vkládání fotografií
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <CheckCircle weight="fill" className="text-green-500 flex-shrink-0" />
+                          Notifikace (APP, E-mail, SMS)
                         </li>
                       </>
                     )}
