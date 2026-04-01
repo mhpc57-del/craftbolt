@@ -5,10 +5,8 @@ import axios from 'axios';
 import { API } from '../App';
 import { 
   Eye, EyeSlash, ArrowLeft, ArrowRight, User, Briefcase, 
-  Buildings, UserCircle, Check, MapPin, Camera, MagnifyingGlass, Image as ImageIcon, X
+  Buildings, UserCircle, Check, MapPin, Camera, MagnifyingGlass
 } from '@phosphor-icons/react';
-
-const STEPS = ['basic', 'role', 'type', 'details', 'categories'];
 
 const RegisterPage = () => {
   const [searchParams] = useSearchParams();
@@ -25,14 +23,21 @@ const RegisterPage = () => {
     password: '',
     phone: '',
     role: searchParams.get('role') || '',
-    supplier_type: searchParams.get('type') || '',
+    account_type: searchParams.get('type') || '',
     company_name: '',
     ico: '',
     dic: '',
     address: '',
     branch_address: '',
+    permanent_address: '',
+    actual_address: '',
+    date_of_birth: '',
     profile_image: '',
-    categories: []
+    bio: '',
+    website: '',
+    categories: [],
+    custom_categories: [],
+    custom_category_input: ''
   });
   
   const { register } = useAuth();
@@ -64,7 +69,24 @@ const RegisterPage = () => {
     }));
   };
 
-  // ARES lookup
+  const handleAddCustomCategory = async () => {
+    const cat = formData.custom_category_input.trim();
+    if (!cat) return;
+    if (formData.custom_categories.includes(cat)) return;
+    setFormData(prev => ({
+      ...prev,
+      custom_categories: [...prev.custom_categories, cat],
+      custom_category_input: ''
+    }));
+  };
+
+  const handleRemoveCustomCategory = (cat) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_categories: prev.custom_categories.filter(c => c !== cat)
+    }));
+  };
+
   const handleAresLookup = async () => {
     if (!formData.ico || formData.ico.length < 7) {
       setError('Zadejte platné IČO (min. 7 číslic)');
@@ -88,7 +110,6 @@ const RegisterPage = () => {
     }
   };
 
-  // Profile photo upload
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -108,48 +129,46 @@ const RegisterPage = () => {
     }
   };
 
+  // Determine steps based on role + account_type
+  const getSteps = () => {
+    if (formData.role === 'customer') {
+      return ['basic', 'role', 'customer_type', 'details'];
+    }
+    if (formData.role === 'supplier') {
+      return ['basic', 'role', 'supplier_type', 'details', 'categories'];
+    }
+    return ['basic', 'role'];
+  };
+
+  const steps = getSteps();
+
   const validateStep = () => {
     setError('');
-    switch (STEPS[currentStep]) {
+    const step = steps[currentStep];
+    switch (step) {
       case 'basic':
-        if (!formData.email || !formData.password) {
-          setError('Vyplňte e-mail a heslo');
-          return false;
-        }
-        if (formData.password.length < 6) {
-          setError('Heslo musí mít alespoň 6 znaků');
-          return false;
-        }
+        if (!formData.email || !formData.password) { setError('Vyplňte e-mail a heslo'); return false; }
+        if (formData.password.length < 6) { setError('Heslo musí mít alespoň 6 znaků'); return false; }
         break;
       case 'role':
-        if (!formData.role) {
-          setError('Vyberte prosím roli');
-          return false;
-        }
+        if (!formData.role) { setError('Vyberte prosím roli'); return false; }
         break;
-      case 'type':
-        if (!formData.supplier_type) {
-          setError('Vyberte prosím typ účtu');
-          return false;
-        }
+      case 'customer_type':
+        if (!formData.account_type) { setError('Vyberte prosím typ účtu'); return false; }
+        break;
+      case 'supplier_type':
+        if (!formData.account_type) { setError('Vyberte prosím typ účtu'); return false; }
         break;
       case 'details':
-        if (!formData.company_name) {
-          setError('Vyplňte jméno a příjmení / název firmy');
-          return false;
-        }
-        if (!formData.phone) {
-          setError('Vyplňte telefonní číslo');
-          return false;
-        }
-        if (!formData.email) {
-          setError('Vyplňte e-mail');
-          return false;
+        if (!formData.company_name) { setError('Vyplňte jméno a příjmení / název firmy'); return false; }
+        if (!formData.phone) { setError('Vyplňte telefonní číslo'); return false; }
+        if (formData.role === 'supplier' || formData.account_type !== 'nepodnikatel') {
+          if (!formData.ico) { setError('Vyplňte IČO'); return false; }
         }
         break;
       case 'categories':
-        if (formData.role === 'supplier' && formData.categories.length === 0) {
-          setError('Vyberte alespoň jednu kategorii');
+        if (formData.categories.length === 0 && formData.custom_categories.length === 0) {
+          setError('Vyberte alespoň jednu kategorii nebo navrhněte vlastní');
           return false;
         }
         break;
@@ -159,22 +178,8 @@ const RegisterPage = () => {
 
   const handleNext = () => {
     if (!validateStep()) return;
-    
-    if (formData.role === 'customer' && STEPS[currentStep] === 'details') {
-      handleSubmit();
-      return;
-    }
-    
-    if (currentStep < STEPS.length - 1) {
-      let nextStep = currentStep + 1;
-      if (formData.role === 'customer' && STEPS[nextStep] === 'type') {
-        nextStep++;
-      }
-      if (formData.role === 'customer' && STEPS[nextStep] === 'categories') {
-        handleSubmit();
-        return;
-      }
-      setCurrentStep(nextStep);
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
     } else {
       handleSubmit();
     }
@@ -182,20 +187,40 @@ const RegisterPage = () => {
 
   const handleBack = () => {
     if (currentStep > 0) {
-      let prevStep = currentStep - 1;
-      if (formData.role === 'customer' && STEPS[prevStep] === 'type') {
-        prevStep--;
-      }
-      setCurrentStep(prevStep);
+      setCurrentStep(currentStep - 1);
     }
   };
 
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
-
     try {
-      const user = await register(formData);
+      const submitData = { ...formData };
+      delete submitData.custom_category_input;
+      
+      // Submit custom categories suggestions
+      if (submitData.custom_categories.length > 0) {
+        for (const cat of submitData.custom_categories) {
+          try {
+            // We'll submit these after registration with the token
+          } catch (e) {}
+        }
+      }
+      
+      const user = await register(submitData);
+      
+      // Now submit custom category suggestions with token
+      if (formData.custom_categories.length > 0) {
+        const token = localStorage.getItem('token');
+        for (const cat of formData.custom_categories) {
+          try {
+            await axios.post(`${API}/categories/suggest`, 
+              { category_name: cat },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (e) { console.error('Failed to suggest category:', e); }
+        }
+      }
       
       if (user.role === 'supplier') {
         navigate('/dodavatel');
@@ -210,39 +235,27 @@ const RegisterPage = () => {
   };
 
   const renderStep = () => {
-    switch (STEPS[currentStep]) {
+    const step = steps[currentStep];
+    switch (step) {
       case 'basic':
         return (
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail <span className="text-red-500">*</span></label>
+              <input type="email" name="email" value={formData.email} onChange={handleInputChange}
                 placeholder="vas@email.cz"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                data-testid="register-email-input"
-              />
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                data-testid="register-email-input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Heslo</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Heslo <span className="text-red-500">*</span></label>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
+                <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleInputChange}
                   placeholder="Minimálně 6 znaků"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors pr-12"
-                  data-testid="register-password-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 pr-12"
+                  data-testid="register-password-input" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPassword ? <EyeSlash className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -254,83 +267,16 @@ const RegisterPage = () => {
         return (
           <div className="space-y-4">
             <p className="text-gray-600 mb-6">Jak chcete platformu používat?</p>
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, role: 'customer' }))}
-              className={`w-full p-6 border-2 rounded-xl text-left transition-all ${
-                formData.role === 'customer' 
-                  ? 'border-orange-500 bg-orange-50' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-              data-testid="role-customer-btn"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  formData.role === 'customer' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  <User weight="bold" className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Zákazník</h3>
-                  <p className="text-sm text-gray-500">Hledám řemeslníky a služby</p>
-                </div>
-                {formData.role === 'customer' && (
-                  <Check weight="bold" className="w-6 h-6 text-orange-500 ml-auto" />
-                )}
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, role: 'supplier' }))}
-              className={`w-full p-6 border-2 rounded-xl text-left transition-all ${
-                formData.role === 'supplier' 
-                  ? 'border-orange-500 bg-orange-50' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-              data-testid="role-supplier-btn"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  formData.role === 'supplier' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  <Briefcase weight="bold" className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Dodavatel</h3>
-                  <p className="text-sm text-gray-500">Nabízím své služby</p>
-                </div>
-                {formData.role === 'supplier' && (
-                  <Check weight="bold" className="w-6 h-6 text-orange-500 ml-auto" />
-                )}
-              </div>
-            </button>
-          </div>
-        );
-
-      case 'type':
-        return (
-          <div className="space-y-4">
-            <p className="text-gray-600 mb-6">Jaký je váš typ podnikání?</p>
             {[
-              { value: 'osvc', label: 'OSVČ', desc: 'Fyzická osoba podnikající', price: '490 Kč/měsíc', Icon: UserCircle },
-              { value: 'nepodnikatel', label: 'Nepodnikatel', desc: 'Fyzická osoba nepodnikající', price: '290 Kč/měsíc', Icon: User },
-              { value: 'company', label: 's.r.o.', desc: 'Firma / Společnost', price: '490 Kč/měsíc', Icon: Buildings },
+              { value: 'customer', label: 'Zákazník', desc: 'Hledám řemeslníky a služby', price: '190 Kč/měsíc', Icon: User },
+              { value: 'supplier', label: 'Dodavatel', desc: 'Nabízím své služby', price: 'od 290 Kč/měsíc', Icon: Briefcase },
             ].map(({ value, label, desc, price, Icon }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, supplier_type: value }))}
-                className={`w-full p-6 border-2 rounded-xl text-left transition-all ${
-                  formData.supplier_type === value 
-                    ? 'border-orange-500 bg-orange-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                data-testid={`type-${value}-btn`}
-              >
+              <button key={value} type="button"
+                onClick={() => setFormData(prev => ({ ...prev, role: value, account_type: '' }))}
+                className={`w-full p-6 border-2 rounded-xl text-left transition-all ${formData.role === value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                data-testid={`role-${value}-btn`}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    formData.supplier_type === value ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${formData.role === value ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     <Icon weight="bold" className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
@@ -338,9 +284,65 @@ const RegisterPage = () => {
                     <p className="text-sm text-gray-500">{desc}</p>
                   </div>
                   <span className="text-sm font-medium text-orange-500">{price}</span>
-                  {formData.supplier_type === value && (
-                    <Check weight="bold" className="w-6 h-6 text-orange-500" />
-                  )}
+                  {formData.role === value && <Check weight="bold" className="w-6 h-6 text-orange-500" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        );
+
+      case 'customer_type':
+        return (
+          <div className="space-y-4">
+            <p className="text-gray-600 mb-6">Jaký typ zákazníka jste?</p>
+            {[
+              { value: 'nepodnikatel', label: 'Nepodnikatel', desc: 'Fyzická osoba', Icon: User },
+              { value: 'osvc', label: 'OSVČ', desc: 'Fyzická osoba podnikající', Icon: UserCircle },
+              { value: 'company', label: 'Firma / Organizace', desc: 'Právnická osoba', Icon: Buildings },
+            ].map(({ value, label, desc, Icon }) => (
+              <button key={value} type="button"
+                onClick={() => setFormData(prev => ({ ...prev, account_type: value }))}
+                className={`w-full p-6 border-2 rounded-xl text-left transition-all ${formData.account_type === value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                data-testid={`customer-type-${value}-btn`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${formData.account_type === value ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <Icon weight="bold" className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{label}</h3>
+                    <p className="text-sm text-gray-500">{desc}</p>
+                  </div>
+                  <span className="text-sm font-medium text-orange-500">190 Kč/měsíc</span>
+                  {formData.account_type === value && <Check weight="bold" className="w-6 h-6 text-orange-500" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        );
+
+      case 'supplier_type':
+        return (
+          <div className="space-y-4">
+            <p className="text-gray-600 mb-6">Jaký je váš typ podnikání?</p>
+            {[
+              { value: 'nepodnikatel', label: 'Nepodnikatel', desc: 'Fyzická osoba nepodnikající', price: '290 Kč/měsíc', Icon: User },
+              { value: 'osvc', label: 'OSVČ', desc: 'Fyzická osoba podnikající', price: '490 Kč/měsíc', Icon: UserCircle },
+              { value: 'company', label: 'Firma / Organizace', desc: 'Právnická osoba', price: '490 Kč/měsíc', Icon: Buildings },
+            ].map(({ value, label, desc, price, Icon }) => (
+              <button key={value} type="button"
+                onClick={() => setFormData(prev => ({ ...prev, account_type: value }))}
+                className={`w-full p-6 border-2 rounded-xl text-left transition-all ${formData.account_type === value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                data-testid={`type-${value}-btn`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${formData.account_type === value ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <Icon weight="bold" className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{label}</h3>
+                    <p className="text-sm text-gray-500">{desc}</p>
+                  </div>
+                  <span className="text-sm font-medium text-orange-500">{price}</span>
+                  {formData.account_type === value && <Check weight="bold" className="w-6 h-6 text-orange-500" />}
                 </div>
               </button>
             ))}
@@ -348,9 +350,11 @@ const RegisterPage = () => {
         );
 
       case 'details':
+        const isNepodnikatel = formData.account_type === 'nepodnikatel';
+        const isCustomer = formData.role === 'customer';
         return (
           <div className="space-y-4">
-            {/* Profile photo / Logo */}
+            {/* Profile photo */}
             <div className="flex justify-center mb-2">
               <div className="relative">
                 {formData.profile_image ? (
@@ -372,136 +376,157 @@ const RegisterPage = () => {
                 </label>
               </div>
             </div>
-            <p className="text-center text-xs text-gray-400 -mt-2 mb-2">Logo nebo fotografie</p>
+            <p className="text-center text-xs text-gray-400 -mt-2 mb-2">
+              {isNepodnikatel ? 'Vaše fotografie' : 'Logo nebo fotografie'}
+            </p>
+
+            {/* IČO + ARES — only for OSVČ/firma */}
+            {!isNepodnikatel && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">IČO <span className="text-red-500">*</span></label>
+                <div className="flex gap-2">
+                  <input type="text" name="ico" value={formData.ico} onChange={handleInputChange}
+                    placeholder="12345678"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    data-testid="register-ico-input" />
+                  <button type="button" onClick={handleAresLookup} disabled={aresLoading || !formData.ico}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+                    data-testid="ares-lookup-btn">
+                    {aresLoading ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div> : <MagnifyingGlass className="w-4 h-4" />}
+                    Načíst z ARES
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Klikněte pro automatické vyplnění údajů</p>
+              </div>
+            )}
+
+            {/* DIČ — only for OSVČ/firma */}
+            {!isNepodnikatel && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">DIČ</label>
+                <input type="text" name="dic" value={formData.dic} onChange={handleInputChange}
+                  placeholder="CZ12345678"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  data-testid="register-dic-input" />
+              </div>
+            )}
 
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Jméno a příjmení / název firmy <span className="text-red-500">*</span>
+                {isNepodnikatel ? 'Jméno a příjmení / přezdívka' : 'Jméno a příjmení / název firmy'} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="company_name"
-                value={formData.company_name}
-                onChange={handleInputChange}
-                placeholder="Jan Novák / Firma s.r.o."
+              <input type="text" name="company_name" value={formData.company_name} onChange={handleInputChange}
+                placeholder={isNepodnikatel ? 'Jan Novák' : 'Jan Novák / Firma s.r.o.'}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                data-testid="register-company-input"
-              />
+                data-testid="register-company-input" />
             </div>
 
-            {/* ICO with ARES button */}
+            {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">IČO</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="ico"
-                  value={formData.ico}
-                  onChange={handleInputChange}
-                  placeholder="12345678"
-                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  data-testid="register-ico-input"
-                />
-                <button
-                  type="button"
-                  onClick={handleAresLookup}
-                  disabled={aresLoading || !formData.ico}
-                  className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
-                  data-testid="ares-lookup-btn"
-                >
-                  {aresLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
-                  ) : (
-                    <MagnifyingGlass className="w-4 h-4" />
-                  )}
-                  Načíst z ARES
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Zadejte IČO a klikněte pro automatické vyplnění údajů</p>
-            </div>
-
-            {/* DIC */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">DIČ</label>
-              <input
-                type="text"
-                name="dic"
-                value={formData.dic}
-                onChange={handleInputChange}
-                placeholder="CZ12345678"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                data-testid="register-dic-input"
-              />
-            </div>
-
-            {/* Sídlo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sídlo</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="Ulice, PSČ Město"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  data-testid="register-address-input"
-                />
-              </div>
-            </div>
-
-            {/* Pobočka */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Pobočka</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="branch_address"
-                  value={formData.branch_address}
-                  onChange={handleInputChange}
-                  placeholder="Adresa pobočky (pokud se liší od sídla)"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  data-testid="register-branch-input"
-                />
-              </div>
-            </div>
-
-            {/* Tel. číslo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Telefonní číslo <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Telefonní číslo <span className="text-red-500">*</span></label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange}
                 placeholder="+420 xxx xxx xxx"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                data-testid="register-phone-input"
-              />
+                data-testid="register-phone-input" />
             </div>
 
-            {/* Email (pre-filled, readonly info) */}
+            {/* Email readonly */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                E-mail <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="vas@email.cz"
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail <span className="text-red-500">*</span></label>
+              <input type="email" value={formData.email} readOnly
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
-                data-testid="register-email-readonly"
-                readOnly
-              />
+                data-testid="register-email-readonly" />
               <p className="text-xs text-gray-400 mt-1">Zadáno v prvním kroku</p>
             </div>
+
+            {/* Nepodnikatel customer: trvalý pobyt, skutečná adresa, datum narození */}
+            {isNepodnikatel && isCustomer && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Trvalý pobyt</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" name="permanent_address" value={formData.permanent_address} onChange={handleInputChange}
+                      placeholder="Ulice, PSČ Město"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      data-testid="register-permanent-address-input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Skutečná adresa bydliště</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" name="actual_address" value={formData.actual_address} onChange={handleInputChange}
+                      placeholder="Pokud se liší od trvalého pobytu"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      data-testid="register-actual-address-input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Datum narození</label>
+                  <input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    data-testid="register-dob-input" />
+                </div>
+              </>
+            )}
+
+            {/* OSVČ/firma: sídlo, pobočka */}
+            {!isNepodnikatel && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Sídlo</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" name="address" value={formData.address} onChange={handleInputChange}
+                      placeholder="Ulice, PSČ Město"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      data-testid="register-address-input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Pobočka</label>
+                  <div className="relative">
+                    <Buildings className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" name="branch_address" value={formData.branch_address} onChange={handleInputChange}
+                      placeholder="Adresa pobočky (pokud se liší od sídla)"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      data-testid="register-branch-input" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Supplier: WEB */}
+            {formData.role === 'supplier' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Webová stránka</label>
+                <input type="url" name="website" value={formData.website} onChange={handleInputChange}
+                  placeholder="https://www.vase-firma.cz"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  data-testid="register-website-input" />
+              </div>
+            )}
+
+            {/* Bio — for all */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">O mně / O firmě</label>
+              <textarea name="bio" value={formData.bio} onChange={handleInputChange}
+                placeholder="Napište pár slov o sobě nebo o vaší firmě..."
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
+                data-testid="register-bio-input" />
+            </div>
+
+            {/* Trust message for customers */}
+            {isCustomer && (
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <p className="text-sm text-blue-700">
+                  Vyplněním všech polí a vložením fotografie bude váš profil důvěryhodnější a lépe tak najdete svého dodavatele.
+                </p>
+              </div>
+            )}
           </div>
         );
 
@@ -509,29 +534,49 @@ const RegisterPage = () => {
         return (
           <div>
             <p className="text-gray-600 mb-4">Vyberte kategorie služeb, které nabízíte:</p>
-            <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-xl p-4 space-y-2">
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-1.5">
               {categories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => handleCategoryToggle(category)}
-                  className={`w-full p-3 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
-                    formData.categories.includes(category)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                <button key={category} type="button" onClick={() => handleCategoryToggle(category)}
+                  className={`w-full p-2.5 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
+                    formData.categories.includes(category) ? 'bg-orange-500 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                   }`}
-                  data-testid={`category-${category.replace(/\s+/g, '-').toLowerCase()}`}
-                >
+                  data-testid={`category-${category.replace(/\s+/g, '-').toLowerCase()}`}>
                   {category}
-                  {formData.categories.includes(category) && (
-                    <Check weight="bold" className="w-4 h-4" />
-                  )}
+                  {formData.categories.includes(category) && <Check weight="bold" className="w-4 h-4" />}
                 </button>
               ))}
             </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Vybráno: {formData.categories.length} kategorií
-            </p>
+            <p className="text-sm text-gray-500 mt-2">Vybráno: {formData.categories.length} kategorií</p>
+
+            {/* Custom category */}
+            <div className="mt-4 p-4 border border-gray-200 rounded-xl bg-gray-50">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chybí vám kategorie? Navrhněte vlastní:</label>
+              <div className="flex gap-2">
+                <input type="text" name="custom_category_input" value={formData.custom_category_input} onChange={handleInputChange}
+                  placeholder="Název kategorie"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white"
+                  data-testid="custom-category-input"
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomCategory(); } }} />
+                <button type="button" onClick={handleAddCustomCategory}
+                  className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors"
+                  data-testid="add-custom-category-btn">
+                  Přidat
+                </button>
+              </div>
+              {formData.custom_categories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {formData.custom_categories.map((cat) => (
+                    <span key={cat} className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm flex items-center gap-1.5">
+                      {cat}
+                      <button type="button" onClick={() => handleRemoveCustomCategory(cat)} className="hover:text-red-500">
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-2">Váš návrh bude odeslán ke schválení administrátorovi.</p>
+            </div>
           </div>
         );
 
@@ -541,25 +586,17 @@ const RegisterPage = () => {
   };
 
   const getStepTitle = () => {
-    switch (STEPS[currentStep]) {
-      case 'basic': return 'Základní údaje';
-      case 'role': return 'Výběr role';
-      case 'type': return 'Typ účtu';
-      case 'details': return 'Údaje o účtu';
-      case 'categories': return 'Kategorie';
-      default: return '';
-    }
+    const step = steps[currentStep];
+    const titles = {
+      basic: 'Základní údaje',
+      role: 'Výběr role',
+      customer_type: 'Typ zákazníka',
+      supplier_type: 'Typ dodavatele',
+      details: 'Údaje o účtu',
+      categories: 'Kategorie služeb'
+    };
+    return titles[step] || '';
   };
-
-  const getVisibleSteps = () => {
-    if (formData.role === 'customer') {
-      return ['basic', 'role', 'details'];
-    }
-    return STEPS;
-  };
-
-  const visibleSteps = getVisibleSteps();
-  const currentVisibleIndex = visibleSteps.indexOf(STEPS[currentStep]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -581,19 +618,15 @@ const RegisterPage = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             {/* Progress */}
             <div className="flex items-center gap-2 mb-8">
-              {visibleSteps.map((step, index) => (
+              {steps.map((step, index) => (
                 <React.Fragment key={step}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    index <= currentVisibleIndex
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-400'
+                    index <= currentStep ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
                   }`}>
-                    {index < currentVisibleIndex ? <Check weight="bold" className="w-4 h-4" /> : index + 1}
+                    {index < currentStep ? <Check weight="bold" className="w-4 h-4" /> : index + 1}
                   </div>
-                  {index < visibleSteps.length - 1 && (
-                    <div className={`flex-1 h-1 rounded-full transition-colors ${
-                      index < currentVisibleIndex ? 'bg-orange-500' : 'bg-gray-100'
-                    }`} />
+                  {index < steps.length - 1 && (
+                    <div className={`flex-1 h-1 rounded-full transition-colors ${index < currentStep ? 'bg-orange-500' : 'bg-gray-100'}`} />
                   )}
                 </React.Fragment>
               ))}
@@ -614,21 +647,15 @@ const RegisterPage = () => {
 
               <div className="flex gap-4 mt-8">
                 {currentStep > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleBack}
+                  <button type="button" onClick={handleBack}
                     className="flex-1 py-3 px-6 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    data-testid="register-back-btn"
-                  >
+                    data-testid="register-back-btn">
                     Zpět
                   </button>
                 )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  data-testid="register-next-btn"
-                >
+                <button type="submit" disabled={loading}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="register-next-btn">
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -639,7 +666,7 @@ const RegisterPage = () => {
                     </span>
                   ) : (
                     <>
-                      {currentStep === visibleSteps.length - 1 || (formData.role === 'customer' && STEPS[currentStep] === 'details') ? 'Dokončit registraci' : 'Pokračovat'}
+                      {currentStep === steps.length - 1 ? 'Dokončit registraci' : 'Pokračovat'}
                       <ArrowRight weight="bold" className="w-5 h-5" />
                     </>
                   )}

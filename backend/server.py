@@ -51,29 +51,35 @@ class UserRole:
     SUPPLIER = "supplier"
     ADMIN = "admin"
 
+ADMIN_EMAIL = "m.schwarzer@email.cz"
+
 class SupplierType:
     OSVC = "osvc"  # 490 Kč
     NEPODNIKATEL = "nepodnikatel"  # 290 Kč
     COMPANY = "company"  # 490 Kč (same as OSVC)
 
-class UserBase(BaseModel):
-    email: EmailStr
-    phone: str
-    role: str  # customer, supplier, admin
-    
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     phone: str
     role: str
-    supplier_type: Optional[str] = None  # osvc, nepodnikatel, company
+    account_type: Optional[str] = None  # nepodnikatel, osvc, company — for both customer and supplier
+    supplier_type: Optional[str] = None  # kept for backward compat
     company_name: Optional[str] = None
     ico: Optional[str] = None
     dic: Optional[str] = None
     address: Optional[str] = None
     branch_address: Optional[str] = None
+    permanent_address: Optional[str] = None
+    actual_address: Optional[str] = None
+    date_of_birth: Optional[str] = None
     profile_image: Optional[str] = None
+    bio: Optional[str] = None
+    website: Optional[str] = None
     categories: Optional[List[str]] = []
+    custom_categories: Optional[List[str]] = []
+    reference_photos: Optional[List[str]] = []
+    service_areas: Optional[List[dict]] = []  # [{lat, lng, radius_km}]
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -85,14 +91,23 @@ class UserResponse(BaseModel):
     email: str
     phone: str
     role: str
+    account_type: Optional[str] = None
     supplier_type: Optional[str] = None
     company_name: Optional[str] = None
     ico: Optional[str] = None
     dic: Optional[str] = None
     address: Optional[str] = None
     branch_address: Optional[str] = None
+    permanent_address: Optional[str] = None
+    actual_address: Optional[str] = None
+    date_of_birth: Optional[str] = None
     profile_image: Optional[str] = None
+    bio: Optional[str] = None
+    website: Optional[str] = None
     categories: List[str] = []
+    custom_categories: List[str] = []
+    reference_photos: List[str] = []
+    service_areas: List[dict] = []
     is_verified: bool = False
     trial_ends_at: Optional[str] = None
     subscription_active: bool = False
@@ -309,20 +324,32 @@ async def register(user_data: UserCreate):
     now = datetime.now(timezone.utc)
     trial_end = now + timedelta(days=14)
     
+    # Resolve account_type (use account_type or fallback to supplier_type)
+    account_type = user_data.account_type or user_data.supplier_type
+    
     user = {
         "id": user_id,
         "email": user_data.email,
         "password": hash_password(user_data.password),
         "phone": user_data.phone,
         "role": user_data.role,
-        "supplier_type": user_data.supplier_type,
+        "account_type": account_type,
+        "supplier_type": account_type,  # backward compat
         "company_name": user_data.company_name,
         "ico": user_data.ico,
         "dic": user_data.dic,
         "address": user_data.address,
         "branch_address": user_data.branch_address,
+        "permanent_address": user_data.permanent_address,
+        "actual_address": user_data.actual_address,
+        "date_of_birth": user_data.date_of_birth,
         "profile_image": user_data.profile_image,
+        "bio": user_data.bio,
+        "website": user_data.website,
         "categories": user_data.categories or [],
+        "custom_categories": user_data.custom_categories or [],
+        "reference_photos": user_data.reference_photos or [],
+        "service_areas": user_data.service_areas or [],
         "is_verified": False,
         "trial_ends_at": trial_end.isoformat(),
         "subscription_active": True,  # Active during trial
@@ -377,8 +404,24 @@ class ProfileUpdate(BaseModel):
     dic: Optional[str] = None
     address: Optional[str] = None
     branch_address: Optional[str] = None
+    permanent_address: Optional[str] = None
+    actual_address: Optional[str] = None
+    date_of_birth: Optional[str] = None
     profile_image: Optional[str] = None
+    bio: Optional[str] = None
+    website: Optional[str] = None
     categories: Optional[List[str]] = None
+    custom_categories: Optional[List[str]] = None
+    reference_photos: Optional[List[str]] = None
+    service_areas: Optional[List[dict]] = None
+    account_type: Optional[str] = None
+
+PROFILE_FIELDS = [
+    "company_name", "phone", "ico", "dic", "address", "branch_address",
+    "permanent_address", "actual_address", "date_of_birth", "profile_image",
+    "bio", "website", "categories", "custom_categories", "reference_photos",
+    "service_areas", "account_type"
+]
 
 @api_router.put("/users/profile")
 async def update_profile(
@@ -386,10 +429,14 @@ async def update_profile(
     current_user: dict = Depends(get_current_user)
 ):
     update_data = {}
-    for field in ["company_name", "phone", "ico", "dic", "address", "branch_address", "profile_image", "categories"]:
-        val = getattr(data, field)
+    for field in PROFILE_FIELDS:
+        val = getattr(data, field, None)
         if val is not None:
             update_data[field] = val
+    
+    # Sync supplier_type with account_type
+    if "account_type" in update_data:
+        update_data["supplier_type"] = update_data["account_type"]
     
     if update_data:
         await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
@@ -413,6 +460,39 @@ async def update_location(
 @api_router.get("/categories")
 async def get_categories():
     return {"categories": CATEGORIES}
+
+class CategorySuggestion(BaseModel):
+    category_name: str
+
+@api_router.post("/categories/suggest")
+async def suggest_category(
+    data: CategorySuggestion,
+    current_user: dict = Depends(get_current_user)
+):
+    suggestion = {
+        "id": str(uuid.uuid4()),
+        "category_name": data.category_name,
+        "suggested_by": current_user["id"],
+        "suggested_by_name": current_user.get("company_name") or current_user["email"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "pending"
+    }
+    await db.category_suggestions.insert_one(suggestion)
+    
+    # Create admin notification
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "category_suggestion",
+        "message": f"Dodavatel {suggestion['suggested_by_name']} navrhl novou kategorii: {data.category_name}",
+        "admin_email": ADMIN_EMAIL,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    logger.info(f"Category suggestion: {data.category_name} by {suggestion['suggested_by_name']} — notification sent to {ADMIN_EMAIL}")
+    
+    return {"message": "Návrh kategorie byl odeslán ke schválení"}
 
 # ============ GEOCODING ROUTES ============
 

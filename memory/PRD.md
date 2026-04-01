@@ -48,6 +48,14 @@ Platforma craftbolt.cz - marketplace spojující zákazníky a dodavatele služe
 - ✅ Profil uživatele
 - ✅ **Hero slider** - 10 fotek bez textového překryvu
 - ✅ **"Jak to funguje" slider** - 5 fotek odpovídajících 5 krokům s hover interakcí
+- ✅ **Našeptávač adres** - geocoding + interaktivní mapa s markerem
+- ✅ **Nahrávání fotek k zakázkám** - max 5, JPEG/PNG/WebP
+- ✅ **Volba platby** - hotově/kartou/převodem
+- ✅ **Rozšířená registrace** - zákazník si vybere typ (nepodnikatel/OSVČ/firma) s dynamickými poli
+- ✅ **Profil zákazníka nepodnikatel** - fotka, jméno, telefon, email, trvalý pobyt, bydliště, datum narození, bio
+- ✅ **Profil zákazníka OSVČ/firma** - logo, IČO+ARES, DIČ, název, telefon, email, sídlo, pobočka, bio
+- ✅ **Profil dodavatele** - logo, IČO+ARES, DIČ, název, telefon, email, sídlo, pobočka, web, bio, referenční fotky (max 20), kategorie + vlastní kategorie, oblast působení (kruhy na mapě)
+- ✅ **ARES integrace** - automatické vyplnění údajů z IČO
 
 ## Prioritizovaný backlog
 
