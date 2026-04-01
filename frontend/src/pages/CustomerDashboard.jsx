@@ -228,7 +228,8 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
     latitude: null,
     longitude: null,
     budget_min: '',
-    budget_max: ''
+    budget_max: '',
+    payment_method: 'cash'
   });
 
   // Address autocomplete state
@@ -238,6 +239,10 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
   const [geoLoading, setGeoLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [mapKey, setMapKey] = useState(0);
+
+  // Image upload state
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -334,6 +339,34 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
     }
   };
 
+  // Handle image upload
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (uploadedImages.length + files.length > 5) {
+      setError('Maximálně 5 fotografií');
+      return;
+    }
+    setUploading(true);
+    setError('');
+    for (const file of files) {
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const response = await axios.post(`${API}/upload`, fd, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+        });
+        setUploadedImages(prev => [...prev, response.data.url]);
+      } catch (err) {
+        setError(err.response?.data?.detail || 'Nepodařilo se nahrát fotografii');
+      }
+    }
+    setUploading(false);
+  };
+
+  const removeImage = (index) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -342,6 +375,7 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
     try {
       await axios.post(`${API}/demands`, {
         ...formData,
+        images: uploadedImages,
         budget_min: formData.budget_min ? parseFloat(formData.budget_min) : null,
         budget_max: formData.budget_max ? parseFloat(formData.budget_max) : null
       }, {
@@ -509,6 +543,73 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
                 />
               </div>
             )}
+          </div>
+
+          {/* Photo upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fotografie (max 5)</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {uploadedImages.map((url, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
+                  <img src={`${API.replace('/api', '')}${url}`} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    data-testid={`remove-image-${i}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {uploadedImages.length < 5 && (
+                <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 hover:border-orange-400 flex flex-col items-center justify-center cursor-pointer transition-colors" data-testid="upload-photo-btn">
+                  {uploading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-orange-500"></div>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-5 h-5 text-gray-400" />
+                      <span className="text-[10px] text-gray-400 mt-1">Přidat</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">JPEG, PNG nebo WebP. Max 10 MB na soubor.</p>
+          </div>
+
+          {/* Payment method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Způsob platby</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'cash', label: 'Hotově' },
+                { value: 'card', label: 'Kartou' },
+                { value: 'transfer', label: 'Převodem' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, payment_method: opt.value }))}
+                  className={`py-2.5 px-3 rounded-xl text-sm font-medium border transition-all ${
+                    formData.payment_method === opt.value
+                      ? 'border-orange-500 bg-orange-50 text-orange-600'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                  data-testid={`payment-${opt.value}-btn`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

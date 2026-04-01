@@ -1,5 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -13,6 +14,7 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import httpx
+import base64
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -29,6 +31,10 @@ JWT_EXPIRATION_HOURS = 24
 
 # Create the main app
 app = FastAPI(title="CraftBolt API")
+
+# Uploads directory
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Create routers
 api_router = APIRouter(prefix="/api")
@@ -104,6 +110,7 @@ class DemandCreate(BaseModel):
     images: List[str] = []
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
+    payment_method: str = "cash"  # cash, card, transfer
 
 class DemandResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -117,6 +124,7 @@ class DemandResponse(BaseModel):
     images: List[str] = []
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
+    payment_method: Optional[str] = "cash"
     status: str  # open, in_progress, completed, cancelled
     customer_id: str
     customer_name: Optional[str] = None
@@ -430,6 +438,31 @@ async def geocode_reverse(lat: float, lon: float):
         )
         return response.json()
 
+# ============ UPLOAD ROUTES ============
+
+@api_router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Nepodporovaný formát. Povolené: JPEG, PNG, WebP, GIF")
+    
+    max_size = 10 * 1024 * 1024  # 10MB
+    contents = await file.read()
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="Soubor je příliš velký. Max 10 MB.")
+    
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = UPLOADS_DIR / filename
+    
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    
+    return {"url": f"/api/uploads/{filename}", "filename": filename}
+
 # ============ DEMANDS ROUTES ============
 
 @api_router.post("/demands", response_model=DemandResponse)
@@ -454,6 +487,7 @@ async def create_demand(
         "images": demand_data.images,
         "budget_min": demand_data.budget_min,
         "budget_max": demand_data.budget_max,
+        "payment_method": demand_data.payment_method,
         "status": "open",
         "customer_id": current_user["id"],
         "customer_name": current_user.get("company_name") or current_user["email"],
@@ -767,6 +801,9 @@ async def health():
 
 # Include router
 app.include_router(api_router)
+
+# Serve uploaded files
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # CORS
 app.add_middleware(
