@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth, API } from '../App';
 import { 
   UserCircle, 
   Briefcase, 
@@ -424,6 +424,30 @@ const HomePage = () => {
                 Přijmout vše
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Modal */}
+      {showVideo && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowVideo(false)} data-testid="video-modal">
+          <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowVideo(false)}
+              className="absolute -top-12 right-0 text-white hover:text-orange-400 transition-colors"
+              data-testid="close-video-btn"
+            >
+              <X weight="bold" className="w-8 h-8" />
+            </button>
+            <video 
+              controls 
+              autoPlay 
+              className="w-full rounded-xl shadow-2xl"
+              data-testid="promo-video"
+            >
+              <source src={`${API.replace('/api', '')}/api/uploads/promo_video.mp4`} type="video/mp4" />
+              Váš prohlížeč nepodporuje přehrávání videa.
+            </video>
           </div>
         </div>
       )}
