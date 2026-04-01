@@ -4,6 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet map fixes */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 1;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+}
+
 :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 4%;

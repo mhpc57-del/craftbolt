@@ -86,6 +86,7 @@ class UserResponse(BaseModel):
     created_at: str
     rating: float = 0.0
     reviews_count: int = 0
+    location: Optional[dict] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -275,7 +276,8 @@ def user_to_response(user: dict) -> UserResponse:
         subscription_active=user.get("subscription_active", False),
         created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()),
         rating=user.get("rating", 0.0),
-        reviews_count=user.get("reviews_count", 0)
+        reviews_count=user.get("reviews_count", 0),
+        location=user.get("location")
     )
 
 # ============ AUTH ROUTES ============

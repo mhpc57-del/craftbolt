@@ -1,11 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, API } from '../App';
 import axios from 'axios';
 import { 
   House, Briefcase, ChartBar, MapTrifold, User, SignOut, 
-  MapPin, Calendar, ArrowRight, Check, Clock, Star
+  MapPin, Calendar, ArrowRight, Check, Clock, Star, NavigationArrow
 } from '@phosphor-icons/react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+const demandIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const myLocationIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 const SupplierDashboard = () => {
   const { user, token, logout } = useAuth();
@@ -16,6 +45,8 @@ const SupplierDashboard = () => {
   const [myDemands, setMyDemands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ available: 0, accepted: 0, completed: 0 });
+  const [myLocation, setMyLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,6 +71,28 @@ const SupplierDashboard = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Get current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setMyLocation(loc);
+          // Update location on server
+          axios.post(`${API}/users/location`, {
+            latitude: loc.lat,
+            longitude: loc.lng
+          }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setLocationError(error.message);
+        }
+      );
+    }
   }, [token]);
 
   const handleAcceptDemand = async (demandId) => {
@@ -247,15 +300,87 @@ const SupplierDashboard = () => {
         );
 
       case 'map':
+        // Generate mock coordinates for demands (in real app, use geocoding)
+        const demandsWithCoords = availableDemands.map((d, i) => ({
+          ...d,
+          lat: 49.8 + (Math.random() * 0.3 - 0.15) + (i * 0.02),
+          lng: 15.4 + (Math.random() * 0.3 - 0.15) + (i * 0.02)
+        }));
+        
+        const mapCenter = myLocation 
+          ? [myLocation.lat, myLocation.lng] 
+          : [49.8175, 15.4730];
+        
         return (
           <div className="p-6">
-            <div className="bg-gray-100 rounded-xl aspect-video flex items-center justify-center">
-              <div className="text-center">
-                <MapTrifold className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-2">Mapa s geolokací</p>
-                <p className="text-sm text-gray-400">Funkce bude brzy dostupná</p>
+            <div className="rounded-xl overflow-hidden border border-gray-200">
+              <MapContainer
+                center={mapCenter}
+                zoom={10}
+                style={{ height: '500px', width: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                
+                {/* My location marker */}
+                {myLocation && (
+                  <Marker position={[myLocation.lat, myLocation.lng]} icon={myLocationIcon}>
+                    <Popup>
+                      <div className="text-center">
+                        <strong className="text-orange-600">Vaše poloha</strong>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+                
+                {/* Demand markers */}
+                {demandsWithCoords.map((demand) => (
+                  <Marker 
+                    key={demand.id} 
+                    position={[demand.lat, demand.lng]}
+                    icon={demandIcon}
+                  >
+                    <Popup>
+                      <div className="min-w-[200px]">
+                        <h3 className="font-semibold text-gray-900 mb-1">{demand.title}</h3>
+                        <p className="text-xs text-gray-500 mb-2">{demand.category}</p>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{demand.description}</p>
+                        <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {demand.address}
+                        </p>
+                        <Link
+                          to={`/zakazka/${demand.id}`}
+                          className="block w-full text-center py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium"
+                        >
+                          Zobrazit detail
+                        </Link>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+            
+            {/* Legend */}
+            <div className="mt-4 flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+                <span className="text-gray-600">Vaše poloha</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                <span className="text-gray-600">Dostupné zakázky ({availableDemands.length})</span>
               </div>
             </div>
+            
+            {locationError && (
+              <p className="mt-2 text-xs text-red-500">
+                Chyba geolokace: {locationError}. Povolte přístup k poloze pro lepší zážitek.
+              </p>
+            )}
           </div>
         );
 

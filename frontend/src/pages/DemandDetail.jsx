@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth, API } from '../App';
 import axios from 'axios';
 import { 
   ArrowLeft, MapPin, Calendar, User, Clock, Check, X,
-  PaperPlaneTilt, Star, ChatCircle, Phone
+  PaperPlaneTilt, Star, ChatCircle, Phone, NavigationArrow
 } from '@phosphor-icons/react';
+import LiveMap from '../components/LiveMap';
 
 const DemandDetail = () => {
   const { id } = useParams();
@@ -17,7 +18,11 @@ const DemandDetail = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [customerLocation, setCustomerLocation] = useState(null);
+  const [supplierLocation, setSupplierLocation] = useState(null);
   const messagesEndRef = useRef(null);
+  const locationIntervalRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -27,6 +32,11 @@ const DemandDetail = () => {
       ]);
       setDemand(demandRes.data);
       setMessages(messagesRes.data);
+      
+      // Fetch user locations if demand is in progress
+      if (demandRes.data.status === 'in_progress') {
+        fetchLocations(demandRes.data);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -34,13 +44,74 @@ const DemandDetail = () => {
     }
   };
 
+  const fetchLocations = async (demandData) => {
+    try {
+      // Fetch customer location
+      if (demandData.customer_id) {
+        const customerRes = await axios.get(`${API}/users/${demandData.customer_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (customerRes.data.location) {
+          setCustomerLocation(customerRes.data.location);
+        }
+      }
+      
+      // Fetch supplier location
+      if (demandData.assigned_supplier_id) {
+        const supplierRes = await axios.get(`${API}/users/${demandData.assigned_supplier_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (supplierRes.data.location) {
+          setSupplierLocation(supplierRes.data.location);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    
+    // Poll for location updates every 10 seconds when in progress
+    return () => {
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current);
+      }
+    };
   }, [id, token]);
+
+  useEffect(() => {
+    if (demand?.status === 'in_progress' && showMap) {
+      locationIntervalRef.current = setInterval(() => {
+        fetchLocations(demand);
+      }, 10000);
+      
+      return () => {
+        if (locationIntervalRef.current) {
+          clearInterval(locationIntervalRef.current);
+        }
+      };
+    }
+  }, [demand, showMap]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle location update
+  const handleLocationUpdate = useCallback(async (location) => {
+    try {
+      await axios.post(`${API}/users/location`, {
+        latitude: location.lat,
+        longitude: location.lng
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Error updating location:', error);
+    }
+  }, [token]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -144,6 +215,12 @@ const DemandDetail = () => {
   const canAccept = user?.role === 'supplier' && demand.status === 'open';
   const canComplete = (isCustomer || isAssignedSupplier) && demand.status === 'in_progress';
   const canCancel = isCustomer && (demand.status === 'open' || demand.status === 'in_progress');
+  const showMapButton = demand.status === 'in_progress' && (isCustomer || isAssignedSupplier);
+
+  // Mock destination location from address (in real app, would use geocoding)
+  const destinationLocation = demand.latitude && demand.longitude 
+    ? { lat: demand.latitude, lng: demand.longitude }
+    : { lat: 49.8175 + (Math.random() * 0.1 - 0.05), lng: 15.4730 + (Math.random() * 0.1 - 0.05) };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -163,10 +240,45 @@ const DemandDetail = () => {
               <span className="text-xl font-bold text-orange-500">Bolt</span>
             </Link>
           </div>
+          {showMapButton && (
+            <button
+              onClick={() => setShowMap(!showMap)}
+              className={`px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 ${
+                showMap 
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+              }`}
+              data-testid="toggle-map-btn"
+            >
+              <NavigationArrow className="w-5 h-5" />
+              {showMap ? 'Skrýt mapu' : 'Sledovat polohu'}
+            </button>
+          )}
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto p-4 sm:p-6">
+        {/* Live Map */}
+        {showMap && demand.status === 'in_progress' && (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <NavigationArrow className="w-5 h-5 text-orange-500" />
+              Live sledování
+            </h2>
+            <LiveMap
+              customerLocation={customerLocation}
+              supplierLocation={supplierLocation}
+              destinationLocation={destinationLocation}
+              customerName={demand.customer_name}
+              supplierName={demand.assigned_supplier_name}
+              destinationName={demand.address}
+              onLocationUpdate={handleLocationUpdate}
+              isSupplier={isAssignedSupplier}
+              showTracking={true}
+            />
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -331,17 +443,23 @@ const DemandDetail = () => {
               </div>
             )}
 
-            {/* Map Placeholder */}
-            {demand.status === 'in_progress' && (
+            {/* Quick Map Preview (when not in full map mode) */}
+            {demand.status === 'in_progress' && !showMap && (
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="p-4 border-b border-gray-100">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">Poloha</h3>
+                  <button
+                    onClick={() => setShowMap(true)}
+                    className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+                    data-testid="show-map-btn"
+                  >
+                    Zobrazit mapu
+                  </button>
                 </div>
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">Mapa s geolokací</p>
-                    <p className="text-xs text-gray-300">Brzy dostupné</p>
+                <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <NavigationArrow className="w-12 h-12 text-orange-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Klikněte pro sledování polohy</p>
                   </div>
                 </div>
               </div>

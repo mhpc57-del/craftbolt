@@ -34,30 +34,33 @@ Platforma craftbolt.cz - marketplace spojující zákazníky a dodavatele služe
 - ✅ Hodnocení a recenze
 - ✅ Admin API (statistiky, správa uživatelů)
 - ✅ 14denní trial automaticky při registraci
+- ✅ Geolokace - ukládání a aktualizace polohy uživatelů
 
-### Frontend (React + Tailwind)
+### Frontend (React + Tailwind + Leaflet)
 - ✅ Homepage s hero, výhodami, procesem, ceníkem
 - ✅ Přihlášení
 - ✅ Registrace (multi-step wizard)
 - ✅ Dashboard zákazníka (moje poptávky, nová poptávka)
-- ✅ Dashboard dodavatele (dostupné, moje, statistiky, mapa)
+- ✅ Dashboard dodavatele (dostupné, moje, statistiky, mapa s zakázkami)
 - ✅ Admin panel (přehled, uživatelé, zakázky)
 - ✅ Detail zakázky s chatem
+- ✅ **Live mapa** - real-time sledování polohy (jako Bolt)
 - ✅ Profil uživatele
 
 ## Prioritizovaný backlog
 
 ### P0 (Kritické - další iterace)
-- [ ] Geolokace - real-time tracking polohy
 - [ ] SMS notifikace (Twilio integrace)
 - [ ] Email notifikace
 - [ ] Platební brána (Stripe) pro měsíční paušály
+- [ ] Geocoding - převod adresy na souřadnice
 
 ### P1 (Důležité)
 - [ ] Nahrávání fotografií k poptávkám
 - [ ] Galerie/portfolio dodavatelů
 - [ ] Vyhledávání dodavatelů
 - [ ] Filtrování podle lokace
+- [ ] WebSocket pro real-time aktualizace mapy
 
 ### P2 (Nice to have)
 - [ ] Mobilní aplikace (iOS, Android)
