@@ -68,7 +68,7 @@ const HomePage = () => {
                     className="text-gray-600 hover:text-gray-900 transition-colors"
                     data-testid="dashboard-link"
                   >
-                    Dashboard
+                    Můj profil
                   </Link>
                   <button 
                     onClick={logout}
