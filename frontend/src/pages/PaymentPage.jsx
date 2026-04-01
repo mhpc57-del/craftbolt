@@ -364,8 +364,8 @@ const PricingPage = () => {
           </div>
         )}
 
-        <p className="text-center text-gray-500 text-sm mt-8">
-          Platba kartou přes zabezpečenou bránu Stripe. Můžete kdykoliv zrušit.
+        <p className="text-center text-gray-600 text-sm mt-8 bg-gray-100 py-3 px-6 rounded-full inline-block mx-auto">
+          Platba kartou přes zabezpečenou bránu Stripe. <strong>Předplatné můžete kdykoliv zrušit.</strong>
         </p>
       </div>
     </div>

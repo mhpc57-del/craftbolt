@@ -336,6 +336,9 @@ const HomePage = () => {
               </Link>
             </div>
           </div>
+          <p className="text-center text-gray-600 text-sm mt-8">
+            Platba kartou přes zabezpečenou bránu Stripe. <strong>Předplatné můžete kdykoliv zrušit.</strong>
+          </p>
         </div>
       </section>
 
