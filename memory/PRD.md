@@ -46,6 +46,8 @@ Platforma craftbolt.cz - marketplace spojující zákazníky a dodavatele služe
 - ✅ Detail zakázky s chatem
 - ✅ **Live mapa** - real-time sledování polohy (jako Bolt)
 - ✅ Profil uživatele
+- ✅ **Hero slider** - 10 fotek bez textového překryvu
+- ✅ **"Jak to funguje" slider** - 5 fotek odpovídajících 5 krokům s hover interakcí
 
 ## Prioritizovaný backlog
 

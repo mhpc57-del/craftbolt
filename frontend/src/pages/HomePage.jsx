@@ -19,12 +19,14 @@ import {
   X
 } from '@phosphor-icons/react';
 import HeroSlider from '../components/HeroSlider';
+import StepsSlider from '../components/StepsSlider';
 
 const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
   const [showCookies, setShowCookies] = useState(true);
+  const [activeStep, setActiveStep] = useState(null);
 
   const advantages = [
     { icon: UserCircle, title: "Registrace bez IČ", desc: "Možnost přivýdělku jako zaměstnanec. Nepotřebujete živnostenský list." },
@@ -194,18 +196,21 @@ const HomePage = () => {
               <p className="text-gray-600 text-lg mb-8">
                 Od zadání poptávky po dokončení zakázky. Pět jednoduchých kroků.
               </p>
-              <img 
-                src="https://images.pexels.com/photos/8961295/pexels-photo-8961295.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                alt="Konzultace nad projektem" 
-                className="rounded-2xl shadow-lg w-full"
-              />
+              <StepsSlider activeStep={activeStep} />
             </div>
             <div className="space-y-6">
               {steps.map((step, index) => (
                 <div 
                   key={index} 
-                  className="bg-white rounded-xl p-6 border border-gray-100 card-hover animate-fade-in-up"
+                  className={`bg-white rounded-xl p-6 border card-hover animate-fade-in-up cursor-pointer transition-all duration-200 ${
+                    activeStep === index 
+                      ? 'border-orange-400 shadow-md ring-1 ring-orange-200' 
+                      : 'border-gray-100 hover:border-orange-200'
+                  }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
+                  onMouseEnter={() => setActiveStep(index)}
+                  onMouseLeave={() => setActiveStep(null)}
+                  data-testid={`step-card-${index}`}
                 >
                   <div className="flex gap-4">
                     <span className="text-4xl font-bold text-orange-500">{step.num}</span>
