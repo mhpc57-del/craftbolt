@@ -52,10 +52,10 @@ Platforma craftbolt.cz - marketplace spojující zákazníky a dodavatele služe
 ## Prioritizovaný backlog
 
 ### P0 (Kritické - další iterace)
+- [x] Geocoding - našeptávač adres + interaktivní mapa s markerem
 - [ ] SMS notifikace (Twilio integrace)
 - [ ] Email notifikace
 - [ ] Platební brána (Stripe) pro měsíční paušály
-- [ ] Geocoding - převod adresy na souřadnice
 
 ### P1 (Důležité)
 - [ ] Nahrávání fotografií k poptávkám

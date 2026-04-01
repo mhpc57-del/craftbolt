@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -391,6 +392,43 @@ async def update_location(
 @api_router.get("/categories")
 async def get_categories():
     return {"categories": CATEGORIES}
+
+# ============ GEOCODING ROUTES ============
+
+@api_router.get("/geocode/search")
+async def geocode_search(q: str):
+    """Search for addresses using OpenStreetMap Nominatim"""
+    async with httpx.AsyncClient() as client_http:
+        response = await client_http.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": q,
+                "format": "json",
+                "addressdetails": 1,
+                "limit": 5,
+                "countrycodes": "cz",
+                "accept-language": "cs"
+            },
+            headers={"User-Agent": "CraftBolt/1.0"}
+        )
+        return response.json()
+
+@api_router.get("/geocode/reverse")
+async def geocode_reverse(lat: float, lon: float):
+    """Reverse geocode coordinates to address using Nominatim"""
+    async with httpx.AsyncClient() as client_http:
+        response = await client_http.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            params={
+                "lat": lat,
+                "lon": lon,
+                "format": "json",
+                "addressdetails": 1,
+                "accept-language": "cs"
+            },
+            headers={"User-Agent": "CraftBolt/1.0"}
+        )
+        return response.json()
 
 # ============ DEMANDS ROUTES ============
 

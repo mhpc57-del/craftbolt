@@ -6,6 +6,7 @@ import {
   House, Plus, List, User, SignOut, Bell, MapPin, 
   Calendar, Clock, ArrowRight, X, Check, Image as ImageIcon
 } from '@phosphor-icons/react';
+import DraggableMap from '../components/DraggableMap';
 
 const CustomerDashboard = () => {
   const { user, token, logout } = useAuth();
@@ -224,9 +225,19 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
     description: '',
     category: '',
     address: '',
+    latitude: null,
+    longitude: null,
     budget_min: '',
     budget_max: ''
   });
+
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -239,6 +250,89 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
     };
     fetchCategories();
   }, []);
+
+  // Address search with debounce
+  const handleAddressChange = (value) => {
+    setFormData(prev => ({ ...prev, address: value }));
+    if (searchTimeout) clearTimeout(searchTimeout);
+    if (value.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await axios.get(`${API}/geocode/search`, { params: { q: value } });
+        setAddressSuggestions(response.data);
+        setShowSuggestions(true);
+      } catch (err) {
+        console.error('Geocode search error:', err);
+      }
+    }, 400);
+    setSearchTimeout(timeout);
+  };
+
+  const selectSuggestion = (suggestion) => {
+    const lat = parseFloat(suggestion.lat);
+    const lon = parseFloat(suggestion.lon);
+    setFormData(prev => ({
+      ...prev,
+      address: suggestion.display_name,
+      latitude: lat,
+      longitude: lon
+    }));
+    setShowSuggestions(false);
+    setShowMap(true);
+    setMapKey(prev => prev + 1);
+  };
+
+  // Use current location
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolokace není ve vašem prohlížeči podporována');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await axios.get(`${API}/geocode/reverse`, { params: { lat: latitude, lon: longitude } });
+          setFormData(prev => ({
+            ...prev,
+            address: response.data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            latitude,
+            longitude
+          }));
+          setShowMap(true);
+          setMapKey(prev => prev + 1);
+        } catch (err) {
+          setFormData(prev => ({ ...prev, latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` }));
+          setShowMap(true);
+          setMapKey(prev => prev + 1);
+        }
+        setGeoLoading(false);
+      },
+      (err) => {
+        setError('Nepodařilo se získat vaši polohu. Povolte geolokaci v prohlížeči.');
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Toggle map manually
+  const toggleMap = () => {
+    if (!showMap) {
+      if (!formData.latitude) {
+        setFormData(prev => ({ ...prev, latitude: 49.8175, longitude: 15.4730 }));
+      }
+      setShowMap(true);
+      setMapKey(prev => prev + 1);
+    } else {
+      setShowMap(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -324,20 +418,97 @@ const NewDemandModal = ({ onClose, onSuccess, token }) => {
             />
           </div>
 
+          {/* Address with autocomplete */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Adresa realizace</label>
             <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                placeholder="Zadejte adresu"
+                onChange={(e) => handleAddressChange(e.target.value)}
+                onFocus={() => { if (addressSuggestions.length > 0) setShowSuggestions(true); }}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Začněte psát adresu..."
                 required
                 className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                 data-testid="demand-address-input"
               />
+              {/* Suggestions dropdown */}
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto" data-testid="address-suggestions">
+                  {addressSuggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onMouseDown={() => selectSuggestion(s)}
+                      className="w-full text-left px-4 py-3 hover:bg-orange-50 text-sm text-gray-700 border-b border-gray-50 last:border-0 flex items-start gap-2"
+                      data-testid={`address-suggestion-${i}`}
+                    >
+                      <MapPin className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                      <span>{s.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Location buttons */}
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                disabled={geoLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-50"
+                data-testid="use-current-location-btn"
+              >
+                {geoLoading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-orange-500"></div>
+                ) : (
+                  <MapPin weight="fill" className="w-3.5 h-3.5" />
+                )}
+                Použít aktuální polohu
+              </button>
+              <button
+                type="button"
+                onClick={toggleMap}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                data-testid="toggle-map-btn"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                {showMap ? 'Skrýt mapu' : 'Zvolit na mapě'}
+              </button>
+            </div>
+
+            {/* Coordinates info */}
+            {formData.latitude && formData.longitude && (
+              <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                <Check className="w-3 h-3 text-green-500" />
+                Poloha: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
+              </p>
+            )}
+
+            {/* Interactive map */}
+            {showMap && (
+              <div className="mt-3 rounded-xl overflow-hidden border border-gray-200" data-testid="demand-location-map">
+                <DraggableMap
+                  key={mapKey}
+                  lat={formData.latitude || 49.8175}
+                  lng={formData.longitude || 15.4730}
+                  onLocationChange={async (lat, lng) => {
+                    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    try {
+                      const response = await axios.get(`${API}/geocode/reverse`, { params: { lat, lon: lng } });
+                      if (response.data.display_name) {
+                        setFormData(prev => ({ ...prev, address: response.data.display_name }));
+                      }
+                    } catch (err) {
+                      console.error('Reverse geocode error:', err);
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
