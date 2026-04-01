@@ -39,10 +39,11 @@ const HomePage = () => {
   ];
 
   const steps = [
-    { num: "01", title: "Zákazník zadá zakázku", desc: "Vybere kategorii, popíše požadovanou práci, přiloží fotografie a zadá adresu realizace." },
-    { num: "02", title: "Dodavatel přijme nabídku", desc: "Ověřený dodavatel z vašeho okolí dostane upozornění a nabídne termín a cenu realizace." },
-    { num: "03", title: "Realizace práce", desc: "Dodavatel provede práci. Vše transparentně, bez prostředníka." },
-    { num: "04", title: "Vzájemné hodnocení", desc: "Obě strany ohodnotí spolupráci. Fotografie a recenze budují důvěru na platformě." },
+    { num: "01", title: "Zákazník zadá zakázku", desc: "Vybere kategorii, podrobně napíše svůj požadavek, přidá případné fotografie pro lepší odhad ceny realizace, zadá adresu realizace a požadovaný termín, zvolí typ platby." },
+    { num: "02", title: "Dodavatel přijme zakázku", desc: "Dodavatel z vašeho okolí dostane upozornění, prohlédne si poptávku, zahájí případný online chat pro doplnění informací, zakázku přijme a pustí se do realizace." },
+    { num: "03", title: "Realizace díla/služby", desc: "Dodavatel provede práci či službu, vše transparentně a bez prostředníka." },
+    { num: "04", title: "Předání díla/služby", desc: "Dodavatel řádně předá provedené dílo či službu." },
+    { num: "05", title: "Vzájemné hodnocení", desc: "Obě strany ohodnotí spolupráci. Fotografie a recenze budují důvěru na platformě." },
   ];
 
   return (
@@ -194,7 +195,7 @@ const HomePage = () => {
               <span className="text-orange-500 font-bold text-sm tracking-widest uppercase">Proces</span>
               <h2 className="text-4xl font-bold text-gray-900 mt-4 mb-6">Jak to funguje</h2>
               <p className="text-gray-600 text-lg mb-8">
-                Od zadání poptávky po dokončení zakázky. Čtyři jednoduché kroky.
+                Od zadání poptávky po dokončení zakázky. Pět jednoduchých kroků.
               </p>
             </div>
             <div className="space-y-6">
@@ -213,6 +214,22 @@ const HomePage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+          
+          {/* Important Notice */}
+          <div className="mt-16 bg-orange-50 rounded-2xl p-8 border border-orange-100">
+            <h3 className="font-semibold text-gray-900 text-lg mb-4">Důležité upozornění</h3>
+            <div className="space-y-4 text-gray-600 leading-relaxed">
+              <p>
+                V případě, že si obě smluvní strany předají osobní kontakty z důvodu dalších realizací služeb nebo z důvodu poskytnutí záruk, je jim toto samozřejmě umožněno. Pamatujte však na to, že sjednávání dalších služeb mimo tuto platformu je mnohdy rizikovější a složitější.
+              </p>
+              <p>
+                Sjednávání zakázek přes naši platformu je pohodlné, rychlé, efektivní a máte vždy jasný přehled o svých zakázkách. Veškerá historie (zakázky, chat, fotografie, hodnocení či případné spory) se Vám nikdy neztratí a zůstanou na vašem profilu uložené. Řešení případných sporů nebo nedorozumění je přes tuto platformu vždy bezpečnější a prokazatelnější. Pokud ke sporu dojde, můžete požádat také naši podporu o pomoc, která Vám bude vždy nápomocná a bude se snažit vše vyřešit ke spokojenosti obou smluvních stran.
+              </p>
+              <p className="font-semibold text-orange-600">
+                Doporučení: Nikdy neřešte spor osobně po telefonu. Vždy pamatujte na to, že co je psáno, to je dáno!
+              </p>
             </div>
           </div>
         </div>
