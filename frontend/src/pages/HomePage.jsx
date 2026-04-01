@@ -109,8 +109,8 @@ const HomePage = () => {
                 NOVÁ PLATFORMA PRO ŘEMESLNÍKY
               </span>
               <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 tracking-tight leading-tight mb-6">
-                Najděte správného řemeslníka.{' '}
-                <span className="text-orange-500">Během minut.</span>
+                Najděte svého dodavatele.{' '}
+                <span className="text-orange-500">Během pár minut!</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
                 CraftBolt propojí zákazníky s ověřenými řemeslníky ve vašem okolí. Rychle, bezpečně a bez provizí.
