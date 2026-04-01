@@ -266,7 +266,7 @@ const PricingPage = () => {
                   </h3>
                   <div className="flex items-baseline mb-1">
                     <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-500 ml-2">Kč/měsíc</span>
+                    <span className="text-gray-500 ml-2">Kč/měsíc bez DPH</span>
                   </div>
                   <p className="text-orange-500 text-sm mb-6">{plan.trial_days} dní zdarma na vyzkoušení</p>
 

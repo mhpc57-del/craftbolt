@@ -285,7 +285,7 @@ const HomePage = () => {
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Zákazník</span>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-5xl font-bold text-gray-900">99</span>
-                  <span className="text-gray-500">Kč/měsíc</span>
+                  <span className="text-gray-500">Kč/měsíc bez DPH</span>
                 </div>
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
@@ -315,7 +315,7 @@ const HomePage = () => {
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Dodavatel</span>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-5xl font-bold text-gray-900">399</span>
-                  <span className="text-gray-500">Kč/měsíc</span>
+                  <span className="text-gray-500">Kč/měsíc bez DPH</span>
                 </div>
                 <span className="text-orange-500 text-sm font-medium">14 dní zdarma</span>
               </div>
