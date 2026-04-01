@@ -16,6 +16,7 @@ import bcrypt
 import httpx
 import base64
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+import stripe
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -946,8 +947,8 @@ class CreateCheckoutRequest(BaseModel):
     plan_id: str
     origin_url: str
 
-class CheckoutStatusRequest(BaseModel):
-    session_id: str
+class CancelSubscriptionRequest(BaseModel):
+    pass
 
 # ============ STRIPE ROUTES ============
 
@@ -962,13 +963,12 @@ async def create_subscription_checkout(
     data: CreateCheckoutRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Create Stripe checkout session for subscription"""
+    """Create Stripe Checkout session for recurring subscription"""
     if data.plan_id not in SUBSCRIPTION_PLANS:
         raise HTTPException(status_code=400, detail="Neplatný tarif")
     
     plan = SUBSCRIPTION_PLANS[data.plan_id]
     
-    # Initialize Stripe
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe není nakonfigurován")
@@ -977,28 +977,30 @@ async def create_subscription_checkout(
     webhook_url = f"{host_url}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
     
-    # Build URLs from frontend origin
+    # Build URLs
     success_url = f"{data.origin_url}/platba/uspech?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{data.origin_url}/platba/zruseno"
     
-    # Create checkout session
-    checkout_request = CheckoutSessionRequest(
-        amount=plan["price"],
-        currency="czk",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "user_id": current_user["id"],
-            "user_email": current_user["email"],
-            "plan_id": data.plan_id,
-            "plan_name": plan["name"]
-        }
-    )
-    
     try:
+        # Create checkout session with emergentintegrations
+        checkout_request = CheckoutSessionRequest(
+            amount=plan["price"],
+            currency="czk",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "user_id": current_user["id"],
+                "user_email": current_user["email"],
+                "plan_id": data.plan_id,
+                "plan_name": plan["name"],
+                "subscription_type": "monthly_recurring",
+                "trial_days": str(plan["trial_days"])
+            }
+        )
+        
         session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
         
-        # Create payment transaction record
+        # Create transaction record
         transaction = {
             "id": str(uuid.uuid4()),
             "session_id": session.session_id,
@@ -1009,16 +1011,18 @@ async def create_subscription_checkout(
             "amount": plan["price"],
             "currency": "CZK",
             "payment_status": "pending",
+            "subscription_type": "monthly_recurring",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.payment_transactions.insert_one(transaction)
         
-        logger.info(f"Checkout session created for user {current_user['email']}, plan: {data.plan_id}")
+        logger.info(f"Subscription checkout created for {current_user['email']}, plan: {data.plan_id}")
         
         return {
             "url": session.url,
             "session_id": session.session_id
         }
+        
     except Exception as e:
         logger.error(f"Stripe checkout error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chyba při vytváření platby: {str(e)}")
@@ -1029,7 +1033,7 @@ async def get_subscription_status(
     session_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Check payment status and activate subscription if paid"""
+    """Check payment/subscription status"""
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe není nakonfigurován")
@@ -1046,7 +1050,7 @@ async def get_subscription_status(
         if not transaction:
             raise HTTPException(status_code=404, detail="Transakce nenalezena")
         
-        # Update transaction status
+        # Update transaction
         await db.payment_transactions.update_one(
             {"session_id": session_id},
             {"$set": {
@@ -1056,40 +1060,67 @@ async def get_subscription_status(
             }}
         )
         
-        # If payment successful and not already processed, activate subscription
+        # If payment successful, activate subscription
         if status.payment_status == "paid" and transaction.get("payment_status") != "paid":
-            plan = SUBSCRIPTION_PLANS.get(transaction["plan_id"])
-            if plan:
-                # Calculate subscription end date (1 month from now)
-                subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
-                
-                await db.users.update_one(
-                    {"id": transaction["user_id"]},
-                    {"$set": {
-                        "subscription_active": True,
-                        "subscription_plan": transaction["plan_id"],
-                        "subscription_ends_at": subscription_end.isoformat(),
-                        "trial_ends_at": None  # End trial
-                    }}
-                )
-                
-                logger.info(f"Subscription activated for user {transaction['user_email']}, plan: {transaction['plan_id']}")
+            # Calculate next billing date (1 month from now)
+            next_billing = datetime.now(timezone.utc) + timedelta(days=30)
+            
+            await db.users.update_one(
+                {"id": transaction["user_id"]},
+                {"$set": {
+                    "subscription_active": True,
+                    "subscription_plan": transaction["plan_id"],
+                    "subscription_status": "active",
+                    "subscription_current_period_end": next_billing.isoformat(),
+                    "subscription_started_at": datetime.now(timezone.utc).isoformat(),
+                    "trial_ends_at": None
+                }}
+            )
+            
+            logger.info(f"Subscription activated for {transaction['user_email']}, plan: {transaction['plan_id']}")
         
         return {
             "status": status.status,
             "payment_status": status.payment_status,
-            "amount": status.amount_total / 100,  # Convert from hellers to CZK
-            "currency": status.currency.upper(),
+            "amount": status.amount_total / 100 if status.amount_total else transaction["amount"],
+            "currency": "CZK",
             "plan_id": transaction.get("plan_id"),
             "plan_name": transaction.get("plan_name")
         }
+        
     except Exception as e:
-        logger.error(f"Stripe status check error: {str(e)}")
+        logger.error(f"Stripe status error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chyba při ověřování platby: {str(e)}")
+
+@api_router.post("/subscription/cancel")
+async def cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """Cancel user's subscription (at end of billing period)"""
+    user = await db.users.find_one({"id": current_user["id"]})
+    
+    if not user.get("subscription_active"):
+        raise HTTPException(status_code=400, detail="Nemáte aktivní předplatné")
+    
+    # Mark subscription as canceling
+    cancel_at = user.get("subscription_current_period_end")
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {
+            "subscription_status": "canceling",
+            "subscription_cancel_at": cancel_at
+        }}
+    )
+    
+    logger.info(f"Subscription cancellation requested for {current_user['email']}")
+    
+    return {
+        "message": "Předplatné bude zrušeno na konci aktuálního období",
+        "cancel_at": cancel_at
+    }
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events for subscriptions"""
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         return {"status": "error", "message": "Stripe not configured"}
@@ -1110,7 +1141,6 @@ async def stripe_webhook(request: Request):
         if webhook_response.event_type == "checkout.session.completed":
             session_id = webhook_response.session_id
             
-            # Update transaction
             transaction = await db.payment_transactions.find_one({"session_id": session_id})
             if transaction and transaction.get("payment_status") != "paid":
                 await db.payment_transactions.update_one(
@@ -1122,21 +1152,22 @@ async def stripe_webhook(request: Request):
                 )
                 
                 # Activate subscription
-                plan = SUBSCRIPTION_PLANS.get(transaction["plan_id"])
-                if plan:
-                    subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
-                    await db.users.update_one(
-                        {"id": transaction["user_id"]},
-                        {"$set": {
-                            "subscription_active": True,
-                            "subscription_plan": transaction["plan_id"],
-                            "subscription_ends_at": subscription_end.isoformat(),
-                            "trial_ends_at": None
-                        }}
-                    )
-                    logger.info(f"Subscription activated via webhook for user {transaction['user_email']}")
+                next_billing = datetime.now(timezone.utc) + timedelta(days=30)
+                await db.users.update_one(
+                    {"id": transaction["user_id"]},
+                    {"$set": {
+                        "subscription_active": True,
+                        "subscription_plan": transaction["plan_id"],
+                        "subscription_status": "active",
+                        "subscription_current_period_end": next_billing.isoformat(),
+                        "subscription_started_at": datetime.now(timezone.utc).isoformat(),
+                        "trial_ends_at": None
+                    }}
+                )
+                logger.info(f"Subscription activated via webhook: {transaction['user_email']}")
         
         return {"status": "success"}
+        
     except Exception as e:
         logger.error(f"Stripe webhook error: {str(e)}")
         return {"status": "error", "message": str(e)}
