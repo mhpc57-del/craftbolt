@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, API } from '../App';
 import { 
@@ -25,8 +25,27 @@ const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
-  const [showCookies, setShowCookies] = useState(true);
+  const [showCookies, setShowCookies] = useState(false);
   const [activeStep, setActiveStep] = useState(null);
+
+  useEffect(() => {
+    const savedConsent = localStorage.getItem('craftbolt_consent');
+    
+    if (savedConsent) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        'event': 'consent_update',
+        'security_storage': 'granted',
+        'function_storage': 'granted',
+        'ad_storage': savedConsent,
+        'analytics_storage': savedConsent,
+        'ad_user_data': savedConsent,
+        'ad_personalization': savedConsent
+      });
+    } else {
+      setShowCookies(true);
+    }
+  }, []);
 
   const advantages = [
     { icon: UserCircle, title: "Registrace bez IČ", desc: "Možnost přivýdělku jako zaměstnanec. Nepotřebujete živnostenský list." },
@@ -51,7 +70,6 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-black/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -101,7 +119,6 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -158,7 +175,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Advantages Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -186,7 +202,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* How it works */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
@@ -224,7 +239,6 @@ const HomePage = () => {
             </div>
           </div>
           
-          {/* Important Notice */}
           <div className="mt-16 bg-orange-50 rounded-2xl p-8 border border-orange-100">
             <h3 className="font-semibold text-gray-900 text-lg mb-4">Důležité upozornění</h3>
             <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -242,7 +256,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Video Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div 
@@ -268,7 +281,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -280,7 +292,6 @@ const HomePage = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Customer */}
             <div className="bg-white rounded-2xl p-8 border border-gray-200 card-hover">
               <div className="mb-6">
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">Zákazník</span>
@@ -307,7 +318,6 @@ const HomePage = () => {
               </Link>
             </div>
 
-            {/* Nepodnikatel */}
             <div className="bg-white rounded-2xl p-8 border-2 border-orange-500 card-hover relative">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase">
                 Doporučeno
@@ -337,7 +347,6 @@ const HomePage = () => {
               </Link>
             </div>
 
-            {/* OSVČ / Firmy */}
             <div className="bg-white rounded-2xl p-8 border border-gray-200 card-hover">
               <div className="mb-6">
                 <span className="text-gray-500 text-sm uppercase tracking-widest font-bold">OSVČ / Firmy</span>
@@ -367,7 +376,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-6">Připraveni začít?</h2>
@@ -385,7 +393,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -400,7 +407,6 @@ const HomePage = () => {
         </div>
       </footer>
 
-      {/* Cookie Banner */}
       {showCookies && (
         <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-4 px-4 sm:px-6 lg:px-8 z-50">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -410,14 +416,40 @@ const HomePage = () => {
             </p>
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowCookies(false)}
+                onClick={() => {
+                  localStorage.setItem('craftbolt_consent', 'denied');
+                  window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({
+                    'event': 'consent_update',
+                    'security_storage': 'granted',
+                    'function_storage': 'granted',
+                    'ad_storage': 'denied',
+                    'analytics_storage': 'denied',
+                    'ad_user_data': 'denied',
+                    'ad_personalization': 'denied'
+                  });
+                  setShowCookies(false);
+                }}
                 className="px-4 py-2 border border-gray-600 rounded-lg text-sm hover:border-gray-400 transition-colors"
                 data-testid="cookies-necessary-btn"
               >
                 Pouze nezbytné
               </button>
               <button 
-                onClick={() => setShowCookies(false)}
+                onClick={() => {
+                  localStorage.setItem('craftbolt_consent', 'granted');
+                  window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({
+                    'event': 'consent_update',
+                    'security_storage': 'granted',
+                    'function_storage': 'granted',
+                    'ad_storage': 'granted',
+                    'analytics_storage': 'granted',
+                    'ad_user_data': 'granted',
+                    'ad_personalization': 'granted'
+                  });
+                  setShowCookies(false);
+                }}
                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg text-sm font-medium transition-colors"
                 data-testid="cookies-accept-btn"
               >
@@ -428,7 +460,6 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Video Modal */}
       {showVideo && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowVideo(false)} data-testid="video-modal">
           <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
