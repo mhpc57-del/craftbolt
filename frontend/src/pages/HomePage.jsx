@@ -26,21 +26,27 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
   const [showCookies, setShowCookies] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [activeStep, setActiveStep] = useState(null);
+  const [consentSettings, setConsentSettings] = useState({
+    analytics: true,
+    marketing: true
+  });
 
   useEffect(() => {
-    const savedConsent = localStorage.getItem('craftbolt_consent');
+    const savedConsent = localStorage.getItem('craftbolt_consent_v2');
     
     if (savedConsent) {
+      const parsed = JSON.parse(savedConsent);
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({
         'event': 'consent_update',
         'security_storage': 'granted',
         'function_storage': 'granted',
-        'ad_storage': savedConsent,
-        'analytics_storage': savedConsent,
-        'ad_user_data': savedConsent,
-        'ad_personalization': savedConsent
+        'analytics_storage': parsed.analytics ? 'granted' : 'denied',
+        'ad_storage': parsed.marketing ? 'granted' : 'denied',
+        'ad_user_data': parsed.marketing ? 'granted' : 'denied',
+        'ad_personalization': parsed.marketing ? 'granted' : 'denied'
       });
     } else {
       setShowCookies(true);
@@ -408,54 +414,122 @@ const HomePage = () => {
       </footer>
 
       {showCookies && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-4 px-4 sm:px-6 lg:px-8 z-50">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-300 text-center sm:text-left">
-              Tento web používá cookies nezbytné pro fungování služby. Analytické cookies používáme pouze s vaším souhlasem.
-              <a href="#" className="text-orange-400 hover:text-orange-300 ml-1">Více informací</a>
-            </p>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => {
-                  localStorage.setItem('craftbolt_consent', 'denied');
-                  window.dataLayer = window.dataLayer || [];
-                  window.dataLayer.push({
-                    'event': 'consent_update',
-                    'security_storage': 'granted',
-                    'function_storage': 'granted',
-                    'ad_storage': 'denied',
-                    'analytics_storage': 'denied',
-                    'ad_user_data': 'denied',
-                    'ad_personalization': 'denied'
-                  });
-                  setShowCookies(false);
-                }}
-                className="px-4 py-2 border border-gray-600 rounded-lg text-sm hover:border-gray-400 transition-colors"
-                data-testid="cookies-necessary-btn"
-              >
-                Pouze nezbytné
-              </button>
-              <button 
-                onClick={() => {
-                  localStorage.setItem('craftbolt_consent', 'granted');
-                  window.dataLayer = window.dataLayer || [];
-                  window.dataLayer.push({
-                    'event': 'consent_update',
-                    'security_storage': 'granted',
-                    'function_storage': 'granted',
-                    'ad_storage': 'granted',
-                    'analytics_storage': 'granted',
-                    'ad_user_data': 'granted',
-                    'ad_personalization': 'granted'
-                  });
-                  setShowCookies(false);
-                }}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg text-sm font-medium transition-colors"
-                data-testid="cookies-accept-btn"
-              >
-                Přijmout vše
-              </button>
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-6 px-4 sm:px-6 lg:px-8 z-50 border-t border-gray-800">
+          <div className="max-w-7xl mx-auto">
+            {!showSettings ? (
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="text-sm text-gray-300 text-center md:text-left">
+                  <p className="mb-1 font-semibold text-white text-base">Soukromí a cookies</p>
+                  Tento web používá cookies pro zajištění funkčnosti, analýzu návštěvnosti a <span className="text-orange-400">personalizaci reklam (Google Ads)</span>. 
+                  Své preference můžete kdykoliv změnit. <a href="#" className="underline hover:text-white">Více informací</a>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button 
+                    onClick={() => setShowSettings(true)}
+                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                  >
+                    Nastavení
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const allDenied = { analytics: false, marketing: false };
+                      localStorage.setItem('craftbolt_consent_v2', JSON.stringify(allDenied));
+                      window.dataLayer = window.dataLayer || [];
+                      window.dataLayer.push({
+                        'event': 'consent_update',
+                        'security_storage': 'granted',
+                        'function_storage': 'granted',
+                        'analytics_storage': 'denied',
+                        'ad_storage': 'denied',
+                        'ad_user_data': 'denied',
+                        'ad_personalization': 'denied'
+                      });
+                      setShowCookies(false);
+                    }}
+                    className="px-4 py-2 border border-gray-600 rounded-lg text-sm hover:border-gray-400 transition-colors"
+                  >
+                    Odmítnout vše
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const allGranted = { analytics: true, marketing: true };
+                      localStorage.setItem('craftbolt_consent_v2', JSON.stringify(allGranted));
+                      window.dataLayer = window.dataLayer || [];
+                      window.dataLayer.push({
+                        'event': 'consent_update',
+                        'security_storage': 'granted',
+                        'function_storage': 'granted',
+                        'analytics_storage': 'granted',
+                        'ad_storage': 'granted',
+                        'ad_user_data': 'granted',
+                        'ad_personalization': 'granted'
+                      });
+                      setShowCookies(false);
+                    }}
+                    className="px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
+                  >
+                    Přijmout vše
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="animate-fade-in">
+                <h3 className="text-lg font-bold mb-4">Nastavení souhlasu</h3>
+                <div className="grid sm:grid-cols-2 gap-4 mb-6 text-sm">
+                  <div className="p-4 bg-gray-800 rounded-xl border border-gray-700">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={consentSettings.analytics} 
+                        onChange={(e) => setConsentSettings({...consentSettings, analytics: e.target.checked})}
+                        className="w-4 h-4 accent-orange-500"
+                      />
+                      <span className="font-bold">Analytické cookies</span>
+                    </label>
+                    <p className="mt-2 text-gray-400 text-xs text-balance leading-relaxed">Pomáhají nám pochopit, jak web používáte (Google Analytics).</p>
+                  </div>
+                  <div className="p-4 bg-gray-800 rounded-xl border border-gray-700 text-balance">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={consentSettings.marketing} 
+                        onChange={(e) => setConsentSettings({...consentSettings, marketing: e.target.checked})}
+                        className="w-4 h-4 accent-orange-500"
+                      />
+                      <span className="font-bold">Marketingové cookies</span>
+                    </label>
+                    <p className="mt-2 text-gray-400 text-xs leading-relaxed text-balance">Umožňují nám zobrazovat relevantní reklamy (Google Ads).</p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-4">
+                   <button 
+                    onClick={() => setShowSettings(false)}
+                    className="px-4 py-2 text-sm text-gray-400"
+                  >
+                    Zpět
+                  </button>
+                  <button 
+                    onClick={() => {
+                      localStorage.setItem('craftbolt_consent_v2', JSON.stringify(consentSettings));
+                      window.dataLayer = window.dataLayer || [];
+                      window.dataLayer.push({
+                        'event': 'consent_update',
+                        'security_storage': 'granted',
+                        'function_storage': 'granted',
+                        'analytics_storage': consentSettings.analytics ? 'granted' : 'denied',
+                        'ad_storage': consentSettings.marketing ? 'granted' : 'denied',
+                        'ad_user_data': consentSettings.marketing ? 'granted' : 'denied',
+                        'ad_personalization': consentSettings.marketing ? 'granted' : 'denied'
+                      });
+                      setShowCookies(false);
+                    }}
+                    className="px-6 py-2 bg-white text-gray-900 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors"
+                  >
+                    Uložit nastavení
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
